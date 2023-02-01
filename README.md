@@ -22,7 +22,7 @@
 ##### Step 1:
 ##### Edit the json_time_table and json_weight_table, and modify line 27 of GA_Table_Path_Plaining.py.
 ##### Step 2:
-##### Set the parameters >> GeneticAlgo (route initialization, evolution times, total population, number of points per mating, mutation probability, elite population ##### percentage, total number of parallel universes).
+##### Set the parameters => GeneticAlgo (route initialization, evolution times, total population, number of points per mating, mutation probability, elite population percentage, total number of parallel universes).
 ##### python GA_Table_Path_Plaining.py
 
 
