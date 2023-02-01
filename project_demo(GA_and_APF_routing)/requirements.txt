@@ -1,0 +1,6 @@
+matplotlib
+Pillow
+numpy
+pandas
+math
+typing
