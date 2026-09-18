@@ -266,13 +266,13 @@ Important limitations:
 
 ## Test with the uploaded multi-floor LiDAR-style image
 
-A downsampled fixture derived from the supplied two-floor image is included in the test suite as `tests/fixtures/lidar_multifloor_256.png.base64`.
+A downsampled fixture derived from the supplied two-floor image is included in the test suite as `tests/fixtures/lidar_multifloor_96.png`.
 
 The test confirms an important semantic conflict with the current planner:
 
 1. The original image is `1672 x 941`, so it exceeds the current `512 px` side limit and must be preprocessed before upload.
 2. After downsampling, the perspective background is around grayscale `193–196`. With the default obstacle threshold `100`, that background is interpreted as **free space**, even though it is not part of the floor occupancy grid.
-3. Raising the threshold to around `200` blocks the background, but after the default `0.2 m` footprint inflation at `0.1 m/px`, only a very small fraction of the picture remains traversable. The rendered furniture, floor edges, elevator shafts, and perspective artifacts are not equivalent to a ROS occupancy grid.
+3. Raising the threshold to around `200` blocks the background, but after the default `0.2 m` footprint inflation at `0.1 m/px`, the downsampled rendered fixture has essentially no traversable area left. The rendered furniture, floor edges, elevator shafts, and perspective artifacts are not equivalent to a ROS occupancy grid.
 4. The picture contains two floors and elevator/shaft graphics in one 2D image. A 2D A* planner cannot infer “same elevator, different floor” topology from those pixels. Multi-floor routing should be represented as separate floor costmaps plus explicit portal/elevator edges in a higher-level graph.
 
 So this image is useful as a **negative/compatibility fixture**, but should not be treated as a production occupancy map without segmentation / rectification.
