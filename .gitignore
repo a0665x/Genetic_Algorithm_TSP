@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# Local Web UI development artifacts
+node_modules/
+test-artifacts/
+.DS_Store
