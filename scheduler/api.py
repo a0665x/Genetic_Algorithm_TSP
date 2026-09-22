@@ -96,10 +96,11 @@ def validate(data):
 
 
 class Jobs:
+    validate = staticmethod(validate)
     def __init__(self):
         self.items={};self.lock=threading.RLock()
     def start(self,data):
-        validated=validate(data)
+        validated=self.validate(data)
         with self.lock:
             now=time.time()
             self.items={k:v for k,v in self.items.items() if v['status'] in ('running','queued') or now-v['created']<1800}

@@ -9,7 +9,10 @@ from scheduler.api import ROOT,MAPS,Jobs,image_from_request
 from io import BytesIO
 import base64
 
+from scheduler.building import BuildingJobs, demo_scene, validate_scene
+
 jobs=Jobs()
+building_jobs=BuildingJobs()
 
 class Handler(BaseHTTPRequestHandler):
     def send_bytes(self,body,status=200,kind='application/json'):
@@ -24,13 +27,19 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u=urlparse(self.path);p=u.path
         try:
+            if p=='/api/studio/demo':
+                return self.json(demo_scene())
+            if p.startswith('/api/studio/jobs/'):
+                after=int(parse_qs(u.query).get('after',['0'])[0])
+                if after<0: raise ValueError('after 必須大於等於 0')
+                return self.json(building_jobs.get(p.split('/')[-1],after))
             if p=='/api/maps':
                 return self.json([dict(id=id,name=name,**json.loads((ROOT/'data/map'/f'{id}.json').read_text())) for id,name in MAPS.items()])
             if p.startswith('/api/jobs/'):
                 after=int(parse_qs(u.query).get('after',['0'])[0])
                 if after<0:raise ValueError('after 必須大於等於 0')
                 return self.json(jobs.get(p.split('/')[-1],after))
-            allowed={'/':ROOT/'web/index.html','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
+            allowed={'/':ROOT/'web/studio.html','/legacy':ROOT/'web/index.html','/studio.js':ROOT/'web/studio.js','/studio.css':ROOT/'web/studio.css','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
             allowed.update({f'/data/map/{m}.png':ROOT/'data/map'/f'{m}.png' for m in MAPS})
             file=allowed.get(p)
             if file is None:return self.json({'error':'Not found'},404)
@@ -44,8 +53,16 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.json({'error':'JSON required'},415)
         try:
             size=int(self.headers.get('Content-Length','0'))
-            if not 0<size<=3_000_000:raise ValueError('請求大小需小於 3 MB。')
+            limit=12_000_000 if self.path.startswith('/api/studio/') else 3_000_000
+            if not 0<size<=limit:raise ValueError(f'請求大小需小於 {limit//1_000_000} MB。')
             data=json.loads(self.rfile.read(size))
+            if self.path=='/api/studio/jobs':
+                return self.json({'id':building_jobs.start(data)},202)
+            if self.path=='/api/studio/preview':
+                v=validate_scene(data,require_orders=False,check_clearance=False)
+                return self.json({'floors':v['views'],'portals':v['portals']})
+            if self.path.startswith('/api/studio/jobs/') and self.path.endswith('/cancel'):
+                building_jobs.cancel(self.path.split('/')[-2]);return self.json({'ok':True})
             if self.path=='/api/jobs':return self.json({'id':jobs.start(data)},202)
             if self.path=='/api/map-preview':
                 im=image_from_request(data);buf=BytesIO();im.save(buf,format='PNG')
