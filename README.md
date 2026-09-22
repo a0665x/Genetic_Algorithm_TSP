@@ -1,17 +1,18 @@
 # Dispatch Lab
 
-Plan robot deliveries across multiple floors. Set order priorities, connect elevators, and explore obstacle-aware routes in one interactive workspace.
+Plan robot deliveries across multiple floors. Place and reorder nodes, preview obstacle-aware routes instantly, and optimize deliveries across floors.
 
-![Dispatch Lab walkthrough: order priorities, planned routes, floor connections, and travel-time details](docs/assets/dispatch-demo.gif)
+![Dispatch Lab walkthrough: route editing, paired elevators, incomplete links, and GA evolution](docs/assets/dispatch-demo.gif)
 
-*Screenshot walkthrough: set priorities → review routes → explore floors → inspect travel times.*
+*Screenshot walkthrough: edit routes → pair elevators → repair missing endpoints → inspect GA evolution.*
 
 ## Features
 
-- **Multi-floor routing** with editable maps and elevator connections.
-- **Simple order controls** for importance, waiting time, and patience.
+- **Multi-floor routing** with uploaded costmaps, paired elevator endpoints, and preflight validation.
+- **Direct map editing** with draggable pins, box selection, right-click actions, and reorderable stops.
 - **A* + genetic optimization** for routes and delivery sequences.
 - **Replay and inspection** with W/D/T matrices and scene import/export.
+- **English / 繁體中文** throughout the editor; English on first launch.
 
 ## Quick start
 
@@ -29,9 +30,11 @@ Using an existing checkout? Run `git pull origin main` before starting the app. 
 
 ## Try it
 
-1. Start with the included two-floor example, or upload your own floor maps.
-2. Select an order and adjust its importance, waiting time, and patience.
-3. Run the planner, explore the route, and open calculation details when needed.
+1. Add or drag nodes. The first node is the green start; the last is the red finish.
+2. Drag the right-hand list to reorder stops. A* previews the route before optimization.
+3. Run **GA**, toggle **SAW**, and replay elite routes in the evolution observatory.
+
+In **Settings → Floors & elevators**, upload maps and place both ends of each elevator. Incomplete links are shown as half-links and block planning until repaired or disabled.
 
 Advanced controls and formulas stay collapsed until you need them.
 

@@ -1,10 +1,10 @@
-# Usage and configuration
+# Usage guide
 
-[Back to the overview](../README.md)
+[Overview](../README.md) · [Mathematical model](math_model.md)
 
 ## Installation
 
-The README covers Conda. For Python 3.11+ with pip:
+The README covers Conda. Alternatively, use Python 3.11+:
 
 ```bash
 python -m venv .venv
@@ -13,94 +13,78 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open http://127.0.0.1:8000. The application needs no GPU, frontend build, npm, external CDN, or cloud service. It is an unauthenticated local simulator; keep the default loopback binding and do not expose it directly to the public internet. Use `python app.py --port 8001` when the default port is occupied.
+Open http://127.0.0.1:8000. Use `python app.py --port 8001` when the port is occupied. Keep the server on localhost; this local simulator does not provide authentication for public deployment.
 
-For an existing Conda installation:
+## Edit a route
 
-```bash
-git pull origin main
-conda env update -f environment.yml --prune
-conda activate dispatch-lab
-python app.py
-```
+Use **Add node** or right-click the map to add at the pointer. Drag pins to reposition them; a drop on a wall or inside clearance rolls back. Drag empty space to box-select, then right-click or press Delete to remove the selection. **Undo** or Ctrl/Cmd+Z restores edits.
 
-The main interface is Multi-floor Studio. The original single-floor interface remains at `/legacy`.
+Drag the right-hand list to reorder stops. The first node becomes the green start, the last the red finish, and intermediate nodes remain gray. Start/finish selectors move an existing node to either end. Alt+Up/Down provides keyboard reordering.
 
-## Orders and results
+A* previews the current sequence without running GA. Cross-floor legs use reachable elevators selected by total walking and elevator time, not screen-space proximity. Old preview replies cannot overwrite newer edits. The stacked view is for inspection; select a floor tab to edit positions.
 
-Select a floor and an order to edit it. Click an empty traversable location to add an order, or use the Add control. Move order can relocate a selected order to another floor. Delete removes the selected order.
+Zero or one node is an editable map. Two nodes support route preview. GA requires at least one intermediate delivery node. Endpoint attributes are stored but excluded from order weights and service-time sums while the nodes act as endpoints.
 
-Importance, Already waited, and Patience are the primary controls. Waiting and patience are displayed in minutes and converted to seconds for calculation. **Patience is the total desired waiting window from order creation**, not the remaining time. Risk, local speed, service time, and forbidden visit positions are under More conditions. The interface currently uses Traditional Chinese labels.
+## Upload maps and pair elevators
 
-Run the planner to see the selected route, arrival schedule, and objective components. Changing inputs clears the previous result. Switch between the editable top-down view and the stacked building view, or replay generations and compare worlds. Import/export preserves the scene for reuse.
+Open **Settings → Floors & elevators**. Upload one or several independent top-down costmaps. Each floor has its own meters-per-pixel scale. This editor changes maps and their node/portal metadata; it does not paint or reconstruct walls in the raster.
 
-Calculation details contains W/D/T matrices. Select a matrix cell to inspect its walking and elevator segments. Formulas and substitutions shows the equations and actual feature contributions. Settings groups map uploads, scale, elevators, scoring coefficients, and GA controls. A score coefficient of zero disables that feature's contribution.
+Create an elevator such as `Ea`, choose its two floors, and select **Place on map** for each endpoint. Click traversable space on the corresponding floor. For floor IDs `1F` and `2F`, the labels become `Ea_1F ↔ Ea_2F`; `Eb_1F ↔ Eb_2F` is a separate elevator. Pairing comes from the explicit link record, never similar names or overlapping pixels.
 
-## Maps and elevators
+Drag an existing portal to reposition it. Click or right-click its marker to edit the pair, clear an endpoint, disable the link, or remove the pair. Exact coordinates and forward/reverse waiting, door-cycle and ride times are available in expanded controls.
 
-The included example has two synthetic 192 × 160 floor grids, six orders, and three elevator connections. These are reproducible occupancy fixtures, not measured LiDAR or a reconstruction of a perspective rendering.
+### Incomplete links
 
-Each floor has its own meters-per-pixel resolution. Upload separate top-down PNG, JPEG, PGM, or BMP images, 4–512 px per side and up to 2 MB per image. Images are never silently resized because resizing can remove thin walls. Maximums are four floors, 524,288 total cells, 12 elevator connections, 30 orders, and a 12 MB scene request.
+An unset coordinate remains `null`, not `(0,0)` or a guessed free position. Drafts can be applied, exported and imported before both endpoints are placed.
 
-Grayscale values at or below the obstacle threshold are blocked. White and gray cells above it are traversable; gray adds cost. Transparent pixels are composited onto black. A per-floor `unknown_value` can explicitly block one unknown grayscale value. Walls and map boundaries are conservatively inflated by `ceil(radius/resolution)` cells using a square kernel. Eight-neighbor A* does not cut blocked diagonal corners.
+Before route search or creation of a GA job, preflight checks for missing endpoints, missing floors, same-floor pairs, blocked/out-of-bounds positions, and disconnected route nodes. An enabled invalid link blocks calculation and identifies the affected endpoint. Disabled drafts are warnings and excluded from routing; the requested route must still be connected through other valid links.
 
-Elevators have explicit `(floor, x, y)` endpoints, availability, and forward/reverse waiting, door-cycle, and ride times. Connections are bidirectional, but their times may differ by direction. Floor overlap and drawn elevator shafts do not create connections. A perspective illustration must not be used as a single walkable occupancy grid.
+The building view shows a one-ended link as a dashed half-link with a question mark and the missing endpoint label. This is a visual placeholder only: it never enters a path or fills in coordinates. When neither endpoint exists, the link remains listed as incomplete in the sidebar.
 
-## Scoring and scope
+Replacing a floor map clears that floor's elevator coordinates for repositioning. Removing a floor removes its route nodes after confirmation but preserves dangling elevator references for repair. Disabled connections can remain unfinished without creating fake connectivity.
 
-The scheduler combines completion time, priority-weighted arrival time, lateness/risk, and horizontal walking distance. The sigmoid priorities are fixed for each planning snapshot. Earlier service times contribute to subsequent arrivals; completion includes the last service and any requested terminal leg. See the [mathematical model](math_model.md) for equations, units, and historical comparisons.
+## Order priorities and optimization
 
-W is a destination-priority view, not a physical edge cost. Same-floor candidates come from gray-cost A*. The directed portal graph selects minimum travel time over these precomputed candidates. T includes walking and elevator time. D is the horizontal walking distance on that same selected path, excluding elevator height. **Both D and T may be asymmetric** when opposite directions choose different elevators. This is not a globally fastest search over every possible continuous-speed-field path.
+Select an intermediate node to set **Importance**, **Already waited**, and **Patience**. Waiting and patience are displayed in minutes and converted to seconds. Patience is the total desired waiting window since order creation, not remaining time. Risk, local speed, service time and forbidden visit positions are under **More conditions**.
 
-The simulator supports one robot, static orders, and static obstacles. Patience is a soft objective, not a guaranteed deadline. Risk is an input consequence coefficient, not a calibrated cancellation probability. Elevator waits are fixed estimates, not queue predictions. Elevator capacity, live pedestrians, multi-robot conflict resolution, ROS origin/rotation, and live SLAM ingestion are not implemented. Every terminal pair must be reachable; disconnected orders fail the job rather than being silently dropped.
+Press **Run GA scheduling** to optimize only the intermediate order. **SAW** controls Sower multi-world elite exchange. The observatory shows actual generations, cost curves, retained elites and migration records. Replay or select a generation/world; unchecking **Show evolving routes** displays the final generation. **Use this solution** explicitly adopts the viewed permutation as the editable route.
 
-Sower worlds are separate populations advanced on one background thread, not CPU-core parallelism. GA is a heuristic and does not guarantee a global optimum. Improvement compares against the feasible input-order baseline, not an optimality bound or an equal-compute benchmark. The candidate budget is `population × (generations + 1) × effective_worlds <= 300,000`.
+Retained elite rows are actual sorted population members (up to five displayed per world); duplicates can occur during convergence. New/retained compares route identity with the same world's preceding generation, not ancestry. Migration records identify the exchanged permutation and its source/destination worlds.
+
+After a completed run, expand **Weights & results** for W/D/T matrices. Click a cell to inspect the actual walking and elevator segments. **Formulas & actual values** contains feature contributions, sigmoid weights and objective components. Start/finish destination columns in W are zero. Input edits invalidate old GA results.
+
+## Language and saved scenes
+
+The main editor defaults to **English** on first launch. Switch to **繁體中文** in the header or settings dialog; the preference is saved in browser storage when available. Application buttons, context menus, tooltips, accessibility labels, validation errors, status messages, evolution summaries and formula descriptions switch together. User-provided names and mathematical symbols are not translated. Language changes do not alter the scene, seed, matrices or recorded results.
+
+Scene JSON preserves uploaded maps, physical scales, ordered nodes, portal drafts, settings and seed. Schema-2 scenes can be imported: their explicit endpoint or return location becomes the final node. Archived views at `/studio` and `/legacy` remain available for compatibility; the language switch belongs to the main editor.
+
+## Map rules and limits
+
+PNG, JPEG, PGM and BMP images must be 4–512 px per side and at most 2 MB each. Maps are not silently resized because resizing can erase thin walls. A scene supports four floors, 524,288 total cells, 12 elevator links, 32 route nodes (30 intermediate orders), and a 12 MB request.
+
+Grayscale at or below the obstacle threshold is blocked. Brighter cells are traversable; gray increases cost. Transparency becomes black. A per-floor unknown grayscale value can be explicitly blocked. Obstacles and map boundaries are conservatively inflated by `ceil(radius/resolution)` cells using a square kernel. Diagonal movement cannot cut blocked corners.
+
+The bundled maps are synthetic examples, not measured LiDAR. Use independent floor grids, not a perspective rendering of several floors. Connections are bidirectional with direction-dependent estimated waiting times. Elevator height is excluded from D; D measures walking distance on the selected minimum-time portal path. Both D and T can therefore be asymmetric.
+
+This is a single-robot, static-order simulator, without live SLAM, elevator queue/capacity simulation or multi-robot collision avoidance. Patience is a soft objective. Risk is a consequence coefficient, not a calibrated probability. GA is heuristic; improvement is relative to the feasible input-order baseline, not a guarantee of global optimality. Sower worlds share one background thread. The candidate budget is `population × (generations + 1) × effective_worlds ≤ 300,000`.
 
 ## Development
 
-Run the backend and HTTP regression suite:
-
 ```bash
 python -m unittest discover -s tests -v
-```
-
-Optional browser integration checks start their own loopback server:
-
-```bash
 pip install playwright
 python -m playwright install chromium
-python tests/browser_studio.py
+python tests/browser_editor.py
+python tests/browser_portals.py
 ```
 
-On hosts that prohibit browser navigation, an explicit harness is available:
+Both browser scripts start their own local HTTP server. On environments where browser navigation is restricted, `--offline-harness --chromium /usr/bin/chromium` uses an isolated DOM/Canvas with a bridge to the real local API. That mode does not validate native browser networking or CSP and does not modify browser policy. Test artifacts are written to the ignored `test-artifacts/` directory.
+
+After capturing the editor and portal screenshots, regenerate the README screenshot animation with:
 
 ```bash
-python tests/browser_studio.py --offline-harness --chromium /usr/bin/chromium
+python scripts/build_editor_gif.py
 ```
 
-The harness loads the same HTML/CSS/JS into an isolated DOM and bridges API calls to the real local HTTP server. It checks DOM/Canvas and backend interactions, not native browser networking or CSP enforcement. Reports and screenshots go to ignored `test-artifacts/`. The Node-based `tests/browser-smoke.cjs` targets `/legacy`.
-
-### Rebuild the README animation
-
-After generating the browser screenshots above:
-
-```bash
-python scripts/make_readme_demo.py
-```
-
-This combines `studio-plan.png`, `studio-building.png`, and `studio-math.png` into `docs/assets/dispatch-demo.gif`. It adds step headings and a settings highlight without changing displayed values or paths. It is a screenshot walkthrough, not continuous screen recording. The current demo uses the captured Studio validation screens from commit `2ad49c47481eb4683d321e9dd7be766eb389dcef`. The animation uses four steps over 15 seconds and loops without external hosting.
-
-### Source layout
-
-```text
-app.py                    local HTTP server
-scheduler/core.py         Costmap, sigmoid weights, objective, PMX, Sower
-scheduler/building.py     multi-floor validation and portal graph
-scheduler/api.py          job orchestration and legacy API
-web/studio.{html,js,css}   Multi-floor Studio
-scripts/export_studio.py  export synthetic floor maps and scene JSON
-scripts/make_readme_demo.py  build the screenshot walkthrough
-notebook/, project_demo*/ original research and teaching material
-```
-
-[Archived single-floor notes](algorithm.md) describe the legacy implementation, not the current portal layer.
+The shared English/Traditional Chinese catalogue is `web/locales.json`. Tests check matching keys/placeholders, English defaults, localized diagnostics, and unchanged model/results across language switches. For algorithm formulas and units, see the [mathematical model](math_model.md).

@@ -167,7 +167,7 @@ class BuildingHTTPTests(unittest.TestCase):
             with urlopen(req,timeout=30) as r:return r.status,r.read(),r.headers
         except HTTPError as e:return e.code,e.read(),e.headers
     def test_full_http_job_snapshot_matrix_formula_and_export_roundtrip(self):
-        status,body,headers=self.request('/');self.assertEqual(status,200)
+        status,body,headers=self.request('/studio');self.assertEqual(status,200)
         self.assertIn("script-src 'self'",headers['Content-Security-Policy'])
         self.assertIn(b'studio.js',body)
         s=json.loads(self.request('/api/studio/demo')[1]);s['settings'].update(generations=6,population=20,worlds=2,interval=2)

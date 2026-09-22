@@ -11,6 +11,11 @@ import base64
 
 from scheduler.building import BuildingJobs, demo_scene, validate_scene
 
+from scheduler.editor import EditorJobs, editor_demo, preview_editor, preflight_editor
+
+from scheduler.messages import localize_payload, exception_payload
+
+editor_jobs=EditorJobs()
 jobs=Jobs()
 building_jobs=BuildingJobs()
 
@@ -23,10 +28,21 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         try:self.wfile.write(body)
         except (BrokenPipeError,ConnectionResetError):pass
-    def json(self,data,status=200):self.send_bytes(json.dumps(data,ensure_ascii=False,allow_nan=False).encode(),status)
+    def json(self,data,status=200):
+        if self.path.startswith(('/api/editor/', '/api/map-preview')):
+            data = localize_payload(data, self.headers.get('Accept-Language', 'en'))
+        self.send_bytes(json.dumps(data,ensure_ascii=False,allow_nan=False).encode(),status)
     def do_GET(self):
         u=urlparse(self.path);p=u.path
         try:
+            if p=='/messages.js':
+                return self.send_bytes(b'window.DISPATCH_MESSAGES = '+(ROOT/'web/locales.json').read_bytes()+b';',kind='application/javascript')
+            if p=='/api/editor/demo':
+                return self.json(editor_demo())
+            if p.startswith('/api/editor/jobs/'):
+                after=int(parse_qs(u.query).get('after',['0'])[0])
+                if after<0: raise ValueError('after 必須大於等於 0')
+                return self.json(editor_jobs.get(p.split('/')[-1],after))
             if p=='/api/studio/demo':
                 return self.json(demo_scene())
             if p.startswith('/api/studio/jobs/'):
@@ -39,13 +55,13 @@ class Handler(BaseHTTPRequestHandler):
                 after=int(parse_qs(u.query).get('after',['0'])[0])
                 if after<0:raise ValueError('after 必須大於等於 0')
                 return self.json(jobs.get(p.split('/')[-1],after))
-            allowed={'/':ROOT/'web/studio.html','/legacy':ROOT/'web/index.html','/studio.js':ROOT/'web/studio.js','/studio.css':ROOT/'web/studio.css','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
+            allowed={'/':ROOT/'web/editor.html','/studio':ROOT/'web/studio.html','/i18n.js':ROOT/'web/i18n.js','/portal-editor.js':ROOT/'web/portal-editor.js','/editor.js':ROOT/'web/editor.js','/editor.css':ROOT/'web/editor.css','/legacy':ROOT/'web/index.html','/studio.js':ROOT/'web/studio.js','/studio.css':ROOT/'web/studio.css','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
             allowed.update({f'/data/map/{m}.png':ROOT/'data/map'/f'{m}.png' for m in MAPS})
             file=allowed.get(p)
             if file is None:return self.json({'error':'Not found'},404)
             return self.send_bytes(file.read_bytes(),kind=mimetypes.guess_type(str(file))[0] or 'application/octet-stream')
         except KeyError:return self.json({'error':'規劃不存在或已過期，請重新執行。'},404)
-        except ValueError as e:return self.json({'error':str(e)},400)
+        except ValueError as e:return self.json(exception_payload(e),400)
     def do_POST(self):
         # Local application: reject cross-origin browser writes and require JSON.
         origin=self.headers.get('Origin')
@@ -53,9 +69,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.json({'error':'JSON required'},415)
         try:
             size=int(self.headers.get('Content-Length','0'))
-            limit=12_000_000 if self.path.startswith('/api/studio/') else 3_000_000
+            limit=12_000_000 if self.path.startswith(('/api/studio/','/api/editor/')) else 3_000_000
             if not 0<size<=limit:raise ValueError(f'請求大小需小於 {limit//1_000_000} MB。')
             data=json.loads(self.rfile.read(size))
+            if self.path=='/api/editor/preflight':
+                return self.json(preflight_editor(data))
+            if self.path=='/api/editor/preview':
+                return self.json(preview_editor(data))
+            if self.path=='/api/editor/jobs':
+                return self.json({'id':editor_jobs.start(data)},202)
+            if self.path.startswith('/api/editor/jobs/') and self.path.endswith('/cancel'):
+                editor_jobs.cancel(self.path.split('/')[-2]);return self.json({'ok':True})
             if self.path=='/api/studio/jobs':
                 return self.json({'id':building_jobs.start(data)},202)
             if self.path=='/api/studio/preview':
@@ -71,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
                 jobs.cancel(self.path.split('/')[-2]);return self.json({'ok':True})
             return self.json({'error':'Not found'},404)
         except KeyError:return self.json({'error':'規劃不存在。'},404)
-        except (ValueError,TypeError) as e:return self.json({'error':str(e)},400)
+        except (ValueError,TypeError) as e:return self.json(exception_payload(e),400)
     def log_message(self,format,*args):
         if '/api/jobs/' not in str(args):super().log_message(format,*args)
 

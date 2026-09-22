@@ -215,7 +215,7 @@ def pmx(a,b,rng):
     return tuple(b[i] if v is None else v for i,v in enumerate(child))
 
 
-def evolve(objective,population=60,generations=80,worlds=4,sower=True,interval=10,migration=.15,mutation=.2,seed=42,callback=None,cancelled=lambda:False):
+def evolve(objective,population=60,generations=80,worlds=4,sower=True,interval=10,migration=.15,mutation=.2,seed=42,callback=None,cancelled=lambda:False,elite_tracking=False):
     n=len(objective.orders)
     if not n: raise ValueError('請至少新增一筆訂單。')
     count=worlds if sower else 1
@@ -231,14 +231,17 @@ def evolve(objective,population=60,generations=80,worlds=4,sower=True,interval=1
     for gen in range(generations+1):
         if cancelled(): raise InterruptedError('已停止規劃')
         for pop in pops: pop.sort(key=objective.evaluate)
-        migrated=0
+        migrated=0; transfers=[]
         if sower and count>1 and gen>0 and gen%interval==0 and migration>0:
             k=min(population-1,max(1,int(population*migration)))
             # Harvest each world's best, shuffle, distribute to OTHER worlds.
             pool=[(w,tuple(r)) for w,pop in enumerate(pops) for r in pop[:k]]
             rngs[0].shuffle(pool)
             for w,pop in enumerate(pops):
-                incoming=[r for source,r in pool if source!=w][:k]
+                picked=[(source,r) for source,r in pool if source!=w][:k]
+                incoming=[r for source,r in picked]
+                if elite_tracking:
+                    transfers.extend(dict(source=source+1,target=w+1,order=[g+1 for g in r],loss=objective.evaluate(r)) for source,r in picked)
                 pop[-len(incoming):]=incoming
                 migrated+=len(incoming)
                 pop.sort(key=objective.evaluate)
@@ -246,9 +249,14 @@ def evolve(objective,population=60,generations=80,worlds=4,sower=True,interval=1
         snapshots=[]
         for w,pop in enumerate(pops):
             best=objective.evaluate(pop[0],True)
+            if elite_tracking:
+                retained=max(1,int(population*.1))
+                best['elite_count']=retained
+                best['elites']=[dict(rank=i+1,loss=objective.evaluate(r),order=[g+1 for g in r]) for i,r in enumerate(pop[:min(5,retained)])]
             snapshots.append(dict(best,world=w+1,diversity=len(set(pop))/population))
         winner=min(snapshots,key=lambda s:s['loss'])
         record={'generation':gen,'worlds':snapshots,'best_world':winner['world'],'best_loss':winner['loss'],'migration':migrated}
+        if elite_tracking: record['transfers']=transfers
         history.append(record)
         if callback: callback(record)
         if gen==generations: break

@@ -180,7 +180,7 @@ def validate_scene(data: dict, require_orders: bool = True, check_clearance: boo
                 cfg=cfg,coefficients=coefficients,custom_end=end is not None)
 
 
-def prepare_building(v: dict, progress=lambda x,y:None, cancelled=lambda:False) -> dict:
+def prepare_building(v: dict, progress=lambda x,y:None, cancelled=lambda:False, terminal_pairs=None) -> dict:
     """Bidirectional connectivity, directed time, explicit floor-tagged segments.
 
     A disconnected walking pair is omitted, not fatal: another floor can provide
@@ -196,6 +196,9 @@ def prepare_building(v: dict, progress=lambda x,y:None, cancelled=lambda:False) 
                 start=anchors[src],end=anchors[dst],wait=wait,door=portal['door'],ride=portal['ride'],
                 time=wait+portal['door']+portal['ride'],distance=0.,effort=0.)))
     walk={}; cache={}; pairs=[(i,j) for i in range(len(anchors)) for j in range(i+1,len(anchors)) if anchors[i]['floor']==anchors[j]['floor']]
+    requested = None if terminal_pairs is None else set(terminal_pairs)
+    if requested is not None:
+        pairs = [(i,j) for i,j in pairs if i>=n or j>=n or (i,j) in requested or (j,i) in requested]
     for done,(i,j) in enumerate(pairs,1):
         if cancelled(): raise InterruptedError('已停止規劃')
         a,b=anchors[i],anchors[j]; fid=a['floor']; g=grids[fid]
@@ -218,6 +221,7 @@ def prepare_building(v: dict, progress=lambda x,y:None, cancelled=lambda:False) 
     distance=np.zeros((n,n)); travel=distance.copy(); effort=distance.copy(); segments={}
     for i in range(n):
         for j in range(n):
+            if requested is not None and (i,j) not in requested: continue
             if cancelled(): raise InterruptedError('已停止規劃')
             if i==j: segments[f'{i}:{j}']=[]; continue
             allowed={i,j,*range(n,len(anchors))}; best={i:0.}; previous={}; heap=[(0.,i)]
@@ -241,7 +245,7 @@ def prepare_building(v: dict, progress=lambda x,y:None, cancelled=lambda:False) 
                     if nt<best.get(dest,math.inf):
                         best[dest]=nt; previous[dest]=(u,edge); heappush(heap,(nt,dest))
             if j not in best:
-                labels=['START']+[o.id for o in v['orders']]+(['END'] if v['custom_end'] else [])
+                labels=v.get('labels') or ['START']+[o.id for o in v['orders']]+(['END'] if v['custom_end'] else [])
                 raise ValueError(f'{labels[i]} → {labels[j]} 不可達；請檢查樓層、電梯啟用狀態及門寬。')
             path=[]; cursor=j
             while cursor!=i:
