@@ -122,3 +122,8 @@ These are comparison scores, not seconds-equivalent operational losses. The nume
 API metadata includes `model_version`, input coefficients/settings, W/D/T, floor-tagged walking/elevator segments and formulas. History contains the actual selected generation/world, schedule and component breakdown. Scene JSON preserves floor images, physical scale, node/portal parameters and seed. Importing or editing a scene invalidates old results.
 
 `tests/test_building.py` verifies segment continuity, corner safety, elevator-only floor transitions, time/distance sums, reverse-direction route differences, loss decomposition, finite-difference sigmoid sensitivity and small enumerated reference problems. A small exact-reference test is not a claim of optimality on arbitrary instances.
+
+
+## Ordered-node editor
+
+The schema-3 adapter maps `nodes[0]` and `nodes[-1]` to fixed route terminals. Nodes in between are the orders optimized by the existing operational objective. Endpoint attributes do not enter the sigmoid weight normalization or order-service sum. Ordered A* previews compute only consecutive requested terminal pairs and never call `evolve`. Portal selection and units are identical to the full-matrix planner. The displayed preview duration is **travel only**; GA completion duration also includes intermediate service times.
