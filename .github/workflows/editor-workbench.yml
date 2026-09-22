@@ -1,0 +1,21 @@
+name: Route editor workbench
+on:
+  push:
+    branches: [feature/direct-route-editor]
+    paths: [.github/workflows/editor-workbench.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - run: git archive --format=zip --output=source.zip HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: editor-source
+          path: source.zip
+          retention-days: 1
