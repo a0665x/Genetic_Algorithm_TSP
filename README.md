@@ -2,13 +2,13 @@
 
 Plan robot deliveries across multiple floors. Place and reorder nodes, preview obstacle-aware routes instantly, and optimize deliveries across floors.
 
-![Dispatch Lab walkthrough: route editing, paired elevators, incomplete links, and GA evolution](docs/assets/dispatch-demo.gif)
+![Dispatch Lab walkthrough: image classification, imported floors, elevator endpoints, and route planning](docs/assets/dispatch-demo.gif)
 
-*Screenshot walkthrough: edit routes → pair elevators → repair missing endpoints → inspect GA evolution.*
+*Screenshot walkthrough: review pixels → assign floors → pair elevators → plan routes.*
 
 ## Features
 
-- **Multi-floor routing** with uploaded costmaps, paired elevator endpoints, and preflight validation.
+- **Multi-floor routing** with reviewed image imports, paired elevator endpoints, and preflight validation.
 - **Direct map editing** with draggable pins, box selection, right-click actions, and reorderable stops.
 - **A* + genetic optimization** for routes and delivery sequences.
 - **Replay and inspection** with W/D/T matrices and scene import/export.
@@ -34,14 +34,14 @@ Using an existing checkout? Run `git pull origin main` before starting the app. 
 2. Drag the right-hand list to reorder stops. A* previews the route before optimization.
 3. Run **GA**, toggle **SAW**, and replay elite routes in the evolution observatory.
 
-In **Settings → Floors & elevators**, upload maps and place both ends of each elevator. Incomplete links are shown as half-links and block planning until repaired or disabled.
+In **Settings → Floors & elevators**, import your maps or a bundled reference scan, assign floor labels and scale, review pixel classes, and place both ends of each elevator. Incomplete links are shown as half-links and block planning until repaired or disabled.
 
 Advanced controls and formulas stay collapsed until you need them.
 
 ## Documentation
 
-[Usage and configuration](docs/guide.md) · [Mathematical model](docs/math_model.md) · [Developer checks](docs/guide.md#development)
+[Map import](docs/semantic_maps.md) · [Usage and configuration](docs/guide.md) · [Mathematical model](docs/math_model.md) · [Developer checks](docs/guide.md#development)
 
-Local, single-robot simulation with synthetic example maps—not a hardware controller. Keep the server on localhost; do not expose it directly to the public internet.
+Local, single-robot simulation with example maps—not a hardware controller. Keep the server on localhost; do not expose it directly to the public internet.
 
 [Apache 2.0 license](LICENSE)

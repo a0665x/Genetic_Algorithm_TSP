@@ -1,0 +1,22 @@
+{
+  "repository": "a0665x/Graph_nodes_path_planning",
+  "commit": "12e874932ab445f2f6ab6689757446c9247df5c7",
+  "note": "Reference rasters only. Floor numbers, scale and elevator positions must be supplied by the user.",
+  "files": [
+    {
+      "file": "map_1.png",
+      "source_path": "imgs/map_1.png",
+      "git_blob_sha": "bff37dd2cf9361196e8031575cb71c16daff45b1"
+    },
+    {
+      "file": "map_2.png",
+      "source_path": "imgs/map_2.png",
+      "git_blob_sha": "ed38bd5434a940fc2d569eb5319c8fd160759c76"
+    },
+    {
+      "file": "map_6.png",
+      "source_path": "imgs/map_6.png",
+      "git_blob_sha": "b69a7d21e3af62bb4dc73fbba43de8046c4357a8"
+    }
+  ]
+}

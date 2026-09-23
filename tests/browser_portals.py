@@ -46,10 +46,10 @@ def run():
             if args.offline_harness:
                 page.expose_function('harnessHttp',http)
                 page.set_content(re.sub(r'<link[^>]+>|<script[^>]+></script>','',(ROOT/'web/editor.html').read_text()))
-                for asset in ['studio.css','editor.css']:page.add_style_tag(content=(ROOT/'web'/asset).read_text())
+                for asset in ['studio.css','editor.css','map-import.css']:page.add_style_tag(content=(ROOT/'web'/asset).read_text())
                 page.evaluate("""() => {window.fetch=async(path,opts={})=>{const r=await window.harnessHttp(path,opts.body?JSON.parse(opts.body):null,opts.headers?.['Accept-Language']||'en');return {ok:r.ok,status:r.status,json:async()=>r.value};};}""")
                 page.evaluate('(d)=>{window.DISPATCH_MESSAGES=d;}',json.loads((ROOT/'web/locales.json').read_text()))
-                for asset in ['i18n.js','editor.js','portal-editor.js']:page.add_script_tag(content=(ROOT/'web'/asset).read_text())
+                for asset in ['i18n.js','editor.js','portal-editor.js','map-import.js']:page.add_script_tag(content=(ROOT/'web'/asset).read_text())
             else:page.goto(base)
             def ev(expr):return page.evaluate('() => '+expr)
             def wait(expr):page.wait_for_function('() => '+expr,timeout=40000)
@@ -118,6 +118,8 @@ def run():
             for k in (1,2):
                 buf=BytesIO();demo_floor(k).save(buf,format='PNG');files.append(dict(name=f'Scan_{k}F.png',mimeType='image/png',buffer=buf.getvalue()))
             page.click('#addFloorBtn');page.set_input_files('#floorUpload',files)
+            for k in (1,2):
+                wait('mapReview!==null && !mapReading');page.check('#mapReviewed');page.click('#applyMapImport')
             wait('draft.floors.length===4');wait('draftPreflight!==null')
             check('multiple uploaded maps become independent floors',ev('draft.floors[2].id==="1F" && draft.floors[3].id==="2F" && draft.floors[2].name==="Scan_1F"'))
             page.click('#addPortalBtn')
@@ -128,7 +130,7 @@ def run():
             page.click('#structureBtn');shot('portals-four-floors')
             settings();page.locator('.floor-setting[data-floor="2F"] .removeFloor').click();save()
             check('deleting a floor keeps a repairable dangling link',ev('scene.portals.some(p=>p.id==="Ea") && preview.preflight.issues.some(i=>i.code==="portal.floor_missing")'))
-            load(original);settings();page.locator('.floor-setting[data-floor="F2"] .replaceFloor').click();page.set_input_files('#floorUpload',files[0]);wait('draft.portals.every(p=>p.b.x===null)');save()
+            load(original);settings();page.locator('.floor-setting[data-floor="F2"] .replaceFloor').click();page.set_input_files('#floorUpload',files[0]);wait('mapReview!==null && !mapReading');page.check('#mapReviewed');page.click('#applyMapImport');wait('draft.portals.every(p=>p.b.x===null)');save()
             check('replacing map clears old portal coordinates',ev('scene.portals.every(p=>p.b.x===null) && preview.preflight.ok===false'))
             load(original);page.click('#planBtn');wait('result!==null && !busy')
             snapshot=ev('JSON.stringify({scene:exported(),meta,history,result})')
