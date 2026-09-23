@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           path: dispatch
+          ref: ae57f4c725920c42035f164f229df89f39f605ba
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -21,7 +22,7 @@ jobs:
           path: graph
           persist-credentials: false
       - run: |
-          git -C dispatch archive --format=zip --output="$GITHUB_WORKSPACE/dispatch-source.zip" ae57f4c725920c42035f164f229df89f39f605ba
+          git -C dispatch archive --format=zip --output="$GITHUB_WORKSPACE/dispatch-source.zip" HEAD
           git -C graph archive --format=zip --output="$GITHUB_WORKSPACE/graph-source.zip" HEAD
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
