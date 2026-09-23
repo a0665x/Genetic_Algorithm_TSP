@@ -27,7 +27,7 @@ Zero or one node is an editable map. Two nodes support route preview. GA require
 
 ## Upload maps and pair elevators
 
-Open **Settings → Floors & elevators**. Upload one or several independent top-down costmaps. Each floor has its own meters-per-pixel scale. This editor changes maps and their node/portal metadata; it does not paint or reconstruct walls in the raster.
+Open **Settings → Floors & elevators**. Upload one or several independent top-down costmaps. Review each image in the import dialog: set its Floor ID and source m/px, choose pixel rules, inspect the classification and clearance layers, and confirm. Three pinned reference rasters from `Graph_nodes_path_planning` are available from the reference picker. See [Map import](semantic_maps.md). Each floor has its own meters-per-pixel scale. This editor changes maps and their node/portal metadata; it does not paint or reconstruct walls in the raster.
 
 Create an elevator such as `Ea`, choose its two floors, and select **Place on map** for each endpoint. Click traversable space on the corresponding floor. For floor IDs `1F` and `2F`, the labels become `Ea_1F ↔ Ea_2F`; `Eb_1F ↔ Eb_2F` is a separate elevator. Pairing comes from the explicit link record, never similar names or overlapping pixels.
 
@@ -57,11 +57,11 @@ After a completed run, expand **Weights & results** for W/D/T matrices. Click a 
 
 The main editor defaults to **English** on first launch. Switch to **繁體中文** in the header or settings dialog; the preference is saved in browser storage when available. Application buttons, context menus, tooltips, accessibility labels, validation errors, status messages, evolution summaries and formula descriptions switch together. User-provided names and mathematical symbols are not translated. Language changes do not alter the scene, seed, matrices or recorded results.
 
-Scene JSON preserves uploaded maps, physical scales, ordered nodes, portal drafts, settings and seed. Schema-2 scenes can be imported: their explicit endpoint or return location becomes the final node. Archived views at `/studio` and `/legacy` remain available for compatibility; the language switch belongs to the main editor.
+Scene JSON preserves original imported bytes, classification options, the reviewed planning grids, physical scales, ordered nodes, portal drafts, settings and seed. Editing a Floor ID remaps its node and elevator references. Replacing geometry removes affected route nodes after confirmation and clears elevator coordinates for repositioning. Schema-2 scenes can be imported: their explicit endpoint or return location becomes the final node. Archived views at `/studio` and `/legacy` remain available for compatibility; the language switch belongs to the main editor.
 
 ## Map rules and limits
 
-PNG, JPEG, PGM and BMP images must be 4–512 px per side and at most 2 MB each. Maps are not silently resized because resizing can erase thin walls. A scene supports four floors, 524,288 total cells, 12 elevator links, 32 route nodes (30 intermediate orders), and a 12 MB request.
+Direct planning grids remain 4–512 px per side, at most 2 MB each. The reviewed image importer accepts PNG, JPEG, PGM and BMP up to 8 MB, 8192 px per side and 16 million pixels. Larger images are classified before explicit conservative integer reduction; any wall or unknown pixel blocks its output cell. You must confirm the preview and physical scale before using the result. Narrow passages can close during reduction. A scene supports four floors, 524,288 total cells, 12 elevator links, 32 route nodes (30 intermediate orders), and a 12 MB request.
 
 Grayscale at or below the obstacle threshold is blocked. Brighter cells are traversable; gray increases cost. Transparency becomes black. A per-floor unknown grayscale value can be explicitly blocked. Obstacles and map boundaries are conservatively inflated by `ceil(radius/resolution)` cells using a square kernel. Diagonal movement cannot cut blocked corners.
 

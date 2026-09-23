@@ -195,6 +195,7 @@ function renderMapSettings(){
     card.append(timings);$('portalSettings').append(card);
   }
   renderDraftIssues();
+  if(typeof enhanceMapSettings==='function')enhanceMapSettings();
 }
 function scheduleDraftCheck(){
   const version=++draftVersion;clearTimeout(draftCheckTimer);draftPreflight=null;
@@ -267,33 +268,7 @@ $('closeSettings').onclick=()=>{$('settingsDialog').close();draftVersion++;clear
 $('settingsDialog').addEventListener('cancel',()=>{draftVersion++;clearTimeout(draftCheckTimer);});
 $('applySettingsBtn').onclick=()=>saveDraft();$('cancelPortalPick').onclick=()=>{cancelPortalPick();draw();};
 $('addFloorBtn').onclick=()=>{if(draft.floors.length>=4){status(t('error.max_floors'),true);return;}uploadTarget=null;$('floorUpload').multiple=true;$('floorUpload').click();};
-$('floorUpload').onchange=async e=>{
-  const files=[...e.target.files],target=uploadTarget;e.target.value='';if(!files.length||uploadInProgress)return;
-  const uploadDraft=draft;uploadInProgress=true;$('applySettingsBtn').disabled=$('addFloorBtn').disabled=true;
-  const failures=[];
-  for(const file of files){
-    try{
-      if(!target&&draft.floors.length>=4)throw Error(t('error.max_floors'));
-      if(file.size>2000000)throw Error(t('error.image_size'));
-      $('draftIssues').textContent=t('upload.loading',{file:file.name});
-      const url=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error(t('error.image')));r.readAsDataURL(file);});
-      const v=await api('/api/map-preview',{map_data:url});
-      if(draft!==uploadDraft||!$('settingsDialog').open)break;
-      if(target){
-        const f=draft.floors.find(f=>f.id===target);if(!f)continue;f.map_data=v.data;
-        for(const p of draft.portals)for(const side of ['a','b'])if(p[side].floor===target){p[side].x=null;p[side].y=null;}
-        status(t('portal.map_replaced'));
-      }else{
-        let k=1;while(draft.floors.some(f=>f.id===`${k}F`))k++;
-        draft.floors.push({id:`${k}F`,name:file.name.replace(/\.[^.]+$/,''),map_data:v.data,resolution:.1});
-      }
-    }catch(error){failures.push(`${file.name}: ${error.message}`);}
-  }
-  uploadInProgress=false;$('applySettingsBtn').disabled=$('addFloorBtn').disabled=false;
-  if(draft!==uploadDraft||!$('settingsDialog').open)return;
-  draftPreflight=null;renderSettings();scheduleDraftCheck();
-  if(failures.length)status(t('upload.partial',{file:failures.join('; ')}),true);
-};
+$('floorUpload').onchange=e=>{const files=[...e.target.files],target=uploadTarget;e.target.value='';if(files.length)beginMapImport(files,target);};
 $('addPortalBtn').onclick=()=>{
   if(draft.floors.length<2){status(t('portal.create_first'),true);return;}
   if(draft.portals.length>=12){status(t('error.max_portals'),true);return;}

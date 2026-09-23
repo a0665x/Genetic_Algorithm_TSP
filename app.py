@@ -14,6 +14,7 @@ from scheduler.building import BuildingJobs, demo_scene, validate_scene
 from scheduler.editor import EditorJobs, editor_demo, preview_editor, preflight_editor
 
 from scheduler.messages import localize_payload, exception_payload
+from scheduler.map_import import review_map, reference_maps, reference_map
 
 editor_jobs=EditorJobs()
 jobs=Jobs()
@@ -35,6 +36,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u=urlparse(self.path);p=u.path
         try:
+            if p=='/api/editor/reference-maps':
+                return self.json(reference_maps())
+            if p.startswith('/api/editor/reference-maps/'):
+                return self.json(reference_map(p.split('/')[-1]))
             if p=='/messages.js':
                 return self.send_bytes(b'window.DISPATCH_MESSAGES = '+(ROOT/'web/locales.json').read_bytes()+b';',kind='application/javascript')
             if p=='/api/editor/demo':
@@ -55,7 +60,7 @@ class Handler(BaseHTTPRequestHandler):
                 after=int(parse_qs(u.query).get('after',['0'])[0])
                 if after<0:raise ValueError('after 必須大於等於 0')
                 return self.json(jobs.get(p.split('/')[-1],after))
-            allowed={'/':ROOT/'web/editor.html','/studio':ROOT/'web/studio.html','/i18n.js':ROOT/'web/i18n.js','/portal-editor.js':ROOT/'web/portal-editor.js','/editor.js':ROOT/'web/editor.js','/editor.css':ROOT/'web/editor.css','/legacy':ROOT/'web/index.html','/studio.js':ROOT/'web/studio.js','/studio.css':ROOT/'web/studio.css','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
+            allowed={'/map-import.js':ROOT/'web/map-import.js','/map-import.css':ROOT/'web/map-import.css','/':ROOT/'web/editor.html','/studio':ROOT/'web/studio.html','/i18n.js':ROOT/'web/i18n.js','/portal-editor.js':ROOT/'web/portal-editor.js','/editor.js':ROOT/'web/editor.js','/editor.css':ROOT/'web/editor.css','/legacy':ROOT/'web/index.html','/studio.js':ROOT/'web/studio.js','/studio.css':ROOT/'web/studio.css','/app.js':ROOT/'web/app.js','/style.css':ROOT/'web/style.css'}
             allowed.update({f'/data/map/{m}.png':ROOT/'data/map'/f'{m}.png' for m in MAPS})
             file=allowed.get(p)
             if file is None:return self.json({'error':'Not found'},404)
@@ -72,6 +77,8 @@ class Handler(BaseHTTPRequestHandler):
             limit=12_000_000 if self.path.startswith(('/api/studio/','/api/editor/')) else 3_000_000
             if not 0<size<=limit:raise ValueError(f'請求大小需小於 {limit//1_000_000} MB。')
             data=json.loads(self.rfile.read(size))
+            if self.path=='/api/editor/map-review':
+                return self.json(review_map(data))
             if self.path=='/api/editor/preflight':
                 return self.json(preflight_editor(data))
             if self.path=='/api/editor/preview':

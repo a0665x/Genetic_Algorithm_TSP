@@ -108,7 +108,7 @@ class RepositoryMapTests(unittest.TestCase):
             im=Image.open(ROOT/'data/reference_maps'/f'{name}.png').convert('RGBA')
             c,_=classify(im,options_from({}));source_blocked=c<=UNKNOWN
             p=decoded(r['map_data'])
-            reduced=reduce_classes(c,factor)
+            reduced=reduce_classes(c,r['factor'])
             self.assertTrue(np.all(p[reduced<=UNKNOWN]==0))
     def test_real_map_astar_path_has_no_unknown_or_wall(self):
         r=self.maps['map_1'];g=Costmap(decoded(r['map_data']),r['resolution'],radius=.2)
