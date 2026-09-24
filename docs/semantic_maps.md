@@ -1,10 +1,10 @@
 # Reviewed costmap import
 
-Open **Settings → Floors & elevators → Upload floor**, or **Import costmap** on the left. Select multiple files to review one at a time. For each image, enter a unique **Floor ID**, a display name and the **source-image scale in meters per pixel**. No floor number or physical scale is inferred from a filename.
+Choose **Upload map** on the left or **+ Sheet** beside the tabs. Select multiple files to review one at a time. Sheet IDs and initial display names are assigned automatically; floor labeling can wait. The original and robot-clear preview appear first. **Scale & classification options** contains the editable ID, name, physical source scale and classification preset. No floor number or physical scale is inferred from a filename. The initial source scale is 0.1 m/px and is explicitly labeled assumed until edited.
 
 ## Preview first
 
-Compare the original image with **Pixel classes**, **Planning grid** or **Robot clearance**. Confirm the classes and scale to add the map to your scene. No A* search or GA job runs during classification. The main map has matching Original / Pixel classes / Planning grid views; changing a view never changes the route grid.
+Compare the original image with **Pixel classes**, **Planning grid** or **Robot clearance**. Click **Use this map** to confirm the review and add it to the scene. There is no separate acceptance checkbox. For physical distance/clearance calculations, supply the measured source scale rather than relying on the displayed assumption. No A* search or GA job runs during classification. The main map has matching Original / Pixel classes / Planning grid views; changing a view never changes the route grid.
 
 - **Auto suggestion** uses the grayscale histogram to choose between occupancy-style and traversable-gray rules. It is a heuristic, not semantic recognition of a building.
 - **LiDAR / occupancy** and **Graph repository scans** block dark pixels and mid-gray unknown regions. Pixels at or above the free threshold are free unless colored or transparent.
@@ -25,9 +25,9 @@ The normalized planning raster contains `0` for walls and unknown, `200` for cos
 
 ## Floor and elevator editing
 
-Each imported map is independent. Label them `B1`, `1F`, `2F` or your own IDs. A Floor ID edit updates route nodes and both sides of affected elevator pairs together. The stacked view uses floor-list order, bottom to top; names alone do not imply elevation or physical alignment.
+Each imported map is an independent sheet. Add an optional display label later through its tab menu. Names such as `B1`, `1F` and `2F` do not change connectivity. A Floor ID edit updates route nodes and both sides of affected elevator pairs together. Drag sheet tab grips to set the stacked view order, bottom to top; names alone do not imply elevation or physical alignment.
 
-Create an elevator such as `Ea`, choose its two floor IDs, and place its endpoints explicitly. `Ea_1F ↔ Ea_2F` is one link; `Eb_1F ↔ Eb_2F` is another. Missing, blocked, out-of-bounds or disconnected endpoints are still rejected by preflight before A* or GA. A one-ended link is shown as a half-link; no missing coordinate is guessed.
+Use **+ Elevator** beside **+ Node**, then click entrances on two different sheets. Select a channel to rebind its endpoints, or drag the endpoint/line handles in Building view. Elevator channels never become delivery stops. `Ea_1F ↔ Ea_2F` is one link; `Eb_1F ↔ Eb_2F` is another. Missing, blocked, out-of-bounds or disconnected endpoints are still rejected by preflight before A* or GA. A one-ended link is shown as a half-link; no missing coordinate is guessed.
 
 Original image bytes and classification rules are retained in scene JSON. Use **Pixel rules…** to reclassify without uploading again. When geometry changes, the editor asks to remove that floor's route nodes and clears elevator positions for fresh placement. Reclassification also clears elevator positions; unchanged-coordinate route nodes are checked against the new mask. The scene still supports four floors, 524288 planning cells, 12 elevator links and a 12 MB request. Large originals count toward the scene request limit.
 

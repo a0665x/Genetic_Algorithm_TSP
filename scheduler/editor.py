@@ -20,6 +20,21 @@ def editor_demo():
     return scene
 
 
+
+def starter_scene():
+    """One editable blank sheet. Demo data is available separately and opt-in."""
+    from PIL import Image, ImageDraw
+    from .building import png_url
+    scene = editor_demo()
+    image = Image.new('L', (240, 180), 255)
+    ImageDraw.Draw(image).rectangle((0, 0, 239, 179), outline=0, width=4)
+    scene['floors'] = [dict(id='sheet-1', name='Sheet 1', resolution=.1,
+                            map_data=png_url(image), starter=True)]
+    scene['nodes'] = []
+    scene['portals'] = []
+    return scene
+
+
 def validate_editor(data, planning=True, clearance=True):
     if not isinstance(data, dict) or data.get('schema_version') != 3:
         raise ValueError('請提供 schema_version 3 的節點場景。')
