@@ -1,18 +1,18 @@
 # Dispatch Lab
 
-Plan robot deliveries across multiple floors. Place and reorder nodes, preview obstacle-aware routes instantly, and optimize deliveries across floors.
+Drop in a map, drag your stops, and plan a delivery route. Add more sheets and connect elevator entrances when you need them.
 
-![Dispatch Lab walkthrough: image classification, imported floors, elevator endpoints, and route planning](docs/assets/dispatch-demo.gif)
+![Dispatch Lab: map sheets, draggable elevator channels and GA evolution](docs/assets/dispatch-demo.gif)
 
-*Screenshot walkthrough: review pixels → assign floors → pair elevators → plan routes.*
+*Actual UI walkthrough: one sheet → connect maps → rearrange layers → explore evolution.*
 
 ## Features
 
-- **Multi-floor routing** with reviewed image imports, paired elevator endpoints, and preflight validation.
-- **Direct map editing** with draggable pins, box selection, right-click actions, and reorderable stops.
-- **A* + genetic optimization** for routes and delivery sequences.
-- **Replay and inspection** with W/D/T matrices and scene import/export.
-- **English / 繁體中文** throughout the editor; English on first launch.
+- **Sheet-first editing** — upload maps, drag tabs to stack them, name floors later.
+- **Direct interaction** — draggable pins, route blocks, right-click actions and undo.
+- **Elevator channels** — connect two entrances; drag endpoints or line handles in the building view.
+- **A* + GA scheduling** — instant ordered-route preview, SAW worlds, elite replay and optional calculation details.
+- **English / 繁體中文** — switch without changing your scene or results.
 
 ## Quick start
 
@@ -26,22 +26,20 @@ python app.py
 
 Open **http://127.0.0.1:8000**. No GPU or frontend build is required.
 
-Using an existing checkout? Run `git pull origin main` before starting the app. For a pip-based installation, see the [setup guide](docs/guide.md#installation).
+Existing checkout: `git pull --ff-only origin main`. For pip installation, see the [setup guide](docs/guide.md#installation).
 
 ## Try it
 
-1. Add or drag nodes. The first node is the green start; the last is the red finish.
-2. Drag the right-hand list to reorder stops. A* previews the route before optimization.
-3. Run **GA**, toggle **SAW**, and replay elite routes in the evolution observatory.
+1. Choose **Upload map**, check the preview, and press **Use this map**. Add stops directly on the sheet.
+2. Add another **Sheet** when needed. **+ Elevator** connects two map positions without adding delivery stops.
+3. Drag stops or sheet tabs, then run **GA scheduling** and explore the evolution observatory.
 
-In **Settings → Floors & elevators**, import your maps or a bundled reference scan, assign floor labels and scale, review pixel classes, and place both ends of each elevator. Incomplete links are shown as half-links and block planning until repaired or disabled.
-
-Advanced controls and formulas stay collapsed until you need them.
+Floor labels, image adjustments and algorithm settings remain optional. An assumed map scale is shown until you supply a real one. Incomplete channels remain visible and block planning.
 
 ## Documentation
 
-[Map import](docs/semantic_maps.md) · [Usage and configuration](docs/guide.md) · [Mathematical model](docs/math_model.md) · [Developer checks](docs/guide.md#development)
+[Maps](docs/semantic_maps.md) · [Usage](docs/guide.md) · [Mathematics](docs/math_model.md) · [Developer checks](docs/guide.md#development)
 
-Local, single-robot simulation with example maps—not a hardware controller. Keep the server on localhost; do not expose it directly to the public internet.
+Local, single-robot simulation—not a hardware controller. Keep the server on localhost.
 
 [Apache 2.0 license](LICENSE)

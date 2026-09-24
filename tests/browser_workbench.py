@@ -57,7 +57,7 @@ def run():
             page.set_default_timeout(15000)
             def ev(s):return page.evaluate('()=>('+s+')')
             def wait(s):page.wait_for_function('()=>('+s+')',timeout=60000)
-            def ready():wait('!!preview && !previewRunning && !previewQueued')
+            def ready():wait('!!preview && !previewRunning && !previewQueued && !uploadInProgress && !mapApplying')
             def check(name,condition):
                 assert condition,name
                 checks.append(name);print('PASS',name,flush=True)

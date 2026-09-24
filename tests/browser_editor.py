@@ -45,14 +45,14 @@ def run():
             page.on('request',lambda r:requests.append(r.url))
             if args.offline_harness:
                 page.expose_function('harnessHttp',http)
-                html=re.sub(r'<link[^>]+>|<script[^>]+></script>','',(ROOT/'web/editor.html').read_text())
+                html=re.sub(r'<script\b[^>]*>[\s\S]*?</script>|<link\b[^>]*>','',(ROOT/'web/editor.html').read_text())
                 page.set_content(html)
-                for f in ['studio.css','editor.css','map-import.css']:page.add_style_tag(content=(ROOT/'web'/f).read_text())
+                for f in ['studio.css','editor.css','map-import.css','sheet-workbench.css']:page.add_style_tag(content=(ROOT/'web'/f).read_text())
                 page.evaluate("""() => {window.fetch=async(path,opts={})=>{const r=await window.harnessHttp(path,opts.body?JSON.parse(opts.body):null,opts.headers?.['Accept-Language']||'en');return {ok:r.ok,status:r.status,json:async()=>r.value};};}""")
-                page.evaluate('(data)=>{window.DISPATCH_MESSAGES=data;}', json.loads((ROOT/'web/locales.json').read_text()))
-                for asset in ('i18n.js','editor.js','portal-editor.js','map-import.js'):page.add_script_tag(content=(ROOT/'web'/asset).read_text())
+                page.evaluate('(data)=>{window.DISPATCH_EXAMPLE=true;window.DISPATCH_MESSAGES=data;}', json.loads((ROOT/'web/locales.json').read_text()))
+                for asset in ('i18n.js','editor.js','portal-editor.js','map-import.js','sheet-workbench.js'):page.add_script_tag(content=(ROOT/'web'/asset).read_text())
             else:
-                page.goto(base)
+                page.goto(base+'?example=1')
             page.set_default_timeout(15000)
             def wait(expr):page.wait_for_function('() => '+expr,timeout=30000)
             def check(name, condition):
@@ -101,7 +101,7 @@ def run():
             snapshot('editor-reordered')
             page.click('#undoBtn');ready()
             # Explicit start/end selectors.
-            endkey=ev('scene.nodes[2]._key');page.select_option('#endSelect',endkey);ready()
+            page.click('#endpointControls > summary');endkey=ev('scene.nodes[2]._key');page.select_option('#endSelect',endkey);ready()
             check('endpoint selector changes last node',ev('scene.nodes.at(-1).id==="B"'))
             page.click('#undoBtn');ready()
             # Marquee around two upper-room nodes, context delete and undo.

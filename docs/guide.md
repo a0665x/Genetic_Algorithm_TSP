@@ -15,23 +15,35 @@ python app.py
 
 Open http://127.0.0.1:8000. Use `python app.py --port 8001` when the port is occupied. Keep the server on localhost; this local simulator does not provide authentication for public deployment.
 
+## Start with one sheet
+
+The homepage starts with one empty, synthetic sheet and no tasks or elevator connections. Choose **Upload map** to replace that unused starter with your own image. **+ Sheet** adds another map; batch selection reviews each image in sequence. The included populated example is available at `/?example=1`, not imposed on first launch.
+
+The importer suggests pixel rules and shows the original beside the robot-clear preview. **Use this map** is the review confirmation; there is no second checkbox. Scale defaults to **0.1 m per source pixel, explicitly marked assumed**. Expand **Scale & classification options** when a calibrated scale or different pixel interpretation is needed. The app does not infer physical scale. Wall/unknown rules and clearance checks are unchanged. See [Map import](semantic_maps.md).
+
+Drag a sheet's **⠿** grip to reorder it. The leftmost sheet is the lowest plate in Building view. Alt+Left/Right on a sheet tab, or its context menu, provides the same action. Sorting changes only the view order: sheet IDs, endpoint pairing, travel times, seed, recorded matrices and GA results remain unchanged. An elevator may visually skip a sheet; this does not create an intermediate stop.
+
+Use a tab's **⋯ → Name / floor label** to name it later (for example `B1`, `2F`, or `Lab`). The stable internal ID is kept. This dialog also exposes replacement, pixel rules and removal. **Options** retains the detailed configuration behind closed groups.
+
 ## Edit a route
 
-Use **Add node** or right-click the map to add at the pointer. Drag pins to reposition them; a drop on a wall or inside clearance rolls back. Drag empty space to box-select, then right-click or press Delete to remove the selection. **Undo** or Ctrl/Cmd+Z restores edits.
+Use **+ Node** or right-click the map to add at the pointer. The raised blue pressed button, crosshair and placement banner remain visible while the tool is armed. Escape exits placement. Drag pins on the top-down sheet to reposition them; invalid wall/clearance drops roll back. Drag empty space to box-select, then right-click or press Delete to remove the selection. **Undo** or Ctrl/Cmd+Z restores edits.
 
-Drag the right-hand list to reorder stops. The first node becomes the green start, the last the red finish, and intermediate nodes remain gray. Start/finish selectors move an existing node to either end. Alt+Up/Down provides keyboard reordering.
+Drag the right-hand route blocks to reorder stops. The first becomes the green start, the last the red finish, and intermediate nodes remain gray. Optional **Endpoints** selectors and Alt+Up/Down offer equivalent reordering.
 
-A* previews the current sequence without running GA. Cross-floor legs use reachable elevators selected by total walking and elevator time, not screen-space proximity. Old preview replies cannot overwrite newer edits. The stacked view is for inspection; select a floor tab to edit positions.
+A* previews the current sequence before GA. Cross-sheet legs use reachable elevator channels selected by walking plus elevator time, not screen-space proximity. Old preview replies cannot overwrite newer edits. Building view supports selecting delivery nodes and directly editing elevator handles; delivery pins are moved in the top-down view.
 
-Zero or one node is an editable map. Two nodes support route preview. GA requires at least one intermediate delivery node. Endpoint attributes are stored but excluded from order weights and service-time sums while the nodes act as endpoints.
+Zero or one node is editable; two nodes support preview. GA requires at least one intermediate delivery node. Start/finish attributes are stored but excluded from order weights and service-time sums while the nodes act as endpoints.
 
-## Upload maps and pair elevators
+## Connect elevator entrances
 
-Open **Settings → Floors & elevators**. Upload one or several independent top-down costmaps. Review each image in the import dialog: set its Floor ID and source m/px, choose pixel rules, inspect the classification and clearance layers, and confirm. Three pinned reference rasters from `Graph_nodes_path_planning` are available from the reference picker. See [Map import](semantic_maps.md). Each floor has its own meters-per-pixel scale. This editor changes maps and their node/portal metadata; it does not paint or reconstruct walls in the raster.
+The **+ Elevator** button sits beside **+ Node**. With one sheet it offers **Upload map** or **Blank sheet** to add the other map. With multiple sheets, click the first entrance, then an entrance on another sheet. In top-down mode the UI switches to another sheet for the second click; any other valid sheet can be selected. In Building view either plate can be clicked directly. No coordinate form or floor-label assignment is required.
 
-Create an elevator such as `Ea`, choose its two floors, and select **Place on map** for each endpoint. Click traversable space on the corresponding floor. For floor IDs `1F` and `2F`, the labels become `Ea_1F ↔ Ea_2F`; `Eb_1F ↔ Eb_2F` is a separate elevator. Pairing comes from the explicit link record, never similar names or overlapping pixels.
+Elevators are channels, not delivery stops. Creating or moving a channel never adds to the route list. Every channel keeps explicit A/B sheet IDs and coordinates. Names or overlapping artwork never imply connectivity.
 
-Drag an existing portal to reposition it. Click or right-click its marker to edit the pair, clear an endpoint, disable the link, or remove the pair. Exact coordinates and forward/reverse waiting, door-cycle and ride times are available in expanded controls.
+Click a channel chip, square entrance marker or connection line to show its compact endpoint dock. Click an A/B sheet chip to relocate that end. In Building view, drag a square entrance or a handle near either end of the line onto a sheet. The target plate, line and coordinate readout update during dragging. On release, only that endpoint is committed; routes and preflight update immediately afterward. A wall, out-of-bounds or same-sheet drop restores the old position. A cancelled pointer gesture changes nothing. Stale routes are hidden while a channel is being dragged.
+
+The dock's **More options** exposes sheet selection, direction-dependent waiting times, door-cycle/ride times and deletion. It is the same state as advanced **Options → Floors & elevators**, not a separate graph. Three bundled reference scans remain available there; they are not assumed to be aligned floors or to have calibrated scale.
 
 ### Incomplete links
 
@@ -47,11 +59,11 @@ Replacing a floor map clears that floor's elevator coordinates for repositioning
 
 Select an intermediate node to set **Importance**, **Already waited**, and **Patience**. Waiting and patience are displayed in minutes and converted to seconds. Patience is the total desired waiting window since order creation, not remaining time. Risk, local speed, service time and forbidden visit positions are under **More conditions**.
 
-Press **Run GA scheduling** to optimize only the intermediate order. **SAW** controls Sower multi-world elite exchange. The observatory shows actual generations, cost curves, retained elites and migration records. Replay or select a generation/world; unchecking **Show evolving routes** displays the final generation. **Use this solution** explicitly adopts the viewed permutation as the editable route.
+Press **Run GA scheduling** to optimize only the intermediate order. **SAW** controls Sower multi-world elite exchange. The observatory is collapsed before a run and opens automatically when GA starts. It shows actual generations, cost curves, retained elites and migration records. Ready, armed, checking, blocked, computing and done states have text/icon feedback as well as color; disabled planning has a reason in its tooltip. Replay or select a generation/world; unchecking **Show evolving routes** displays the final generation. **Use this solution** explicitly adopts the viewed permutation as the editable route.
 
 Retained elite rows are actual sorted population members (up to five displayed per world); duplicates can occur during convergence. New/retained compares route identity with the same world's preceding generation, not ancestry. Migration records identify the exchanged permutation and its source/destination worlds.
 
-After a completed run, expand **Weights & results** for W/D/T matrices. Click a cell to inspect the actual walking and elevator segments. **Formulas & actual values** contains feature contributions, sigmoid weights and objective components. Start/finish destination columns in W are zero. Input edits invalidate old GA results.
+After a completed run, expand **Weights & results** for W/D/T matrices. Click a cell to inspect the actual walking and elevator segments. **Formulas & actual values** contains feature contributions, sigmoid weights and objective components. Start/finish destination columns in W are zero. Route, geometry and scoring edits invalidate old GA results. View-only sheet reordering or renaming (and undoing those changes) preserves the recorded result.
 
 ## Language and saved scenes
 
@@ -61,11 +73,11 @@ Scene JSON preserves original imported bytes, classification options, the review
 
 ## Map rules and limits
 
-Direct planning grids remain 4–512 px per side, at most 2 MB each. The reviewed image importer accepts PNG, JPEG, PGM and BMP up to 8 MB, 8192 px per side and 16 million pixels. Larger images are classified before explicit conservative integer reduction; any wall or unknown pixel blocks its output cell. You must confirm the preview and physical scale before using the result. Narrow passages can close during reduction. A scene supports four floors, 524,288 total cells, 12 elevator links, 32 route nodes (30 intermediate orders), and a 12 MB request.
+Direct planning grids remain 4–512 px per side, at most 2 MB each. The reviewed image importer accepts PNG, JPEG, PGM and BMP up to 8 MB, 8192 px per side and 16 million pixels. Larger images are classified before explicit conservative integer reduction; any wall or unknown pixel blocks its output cell. You must confirm the preview; until a real source scale is provided, metrics use the explicitly displayed assumed scale. Narrow passages can close during reduction. A scene supports four floors, 524,288 total cells, 12 elevator links, 32 route nodes (30 intermediate orders), and a 12 MB request.
 
 Grayscale at or below the obstacle threshold is blocked. Brighter cells are traversable; gray increases cost. Transparency becomes black. A per-floor unknown grayscale value can be explicitly blocked. Obstacles and map boundaries are conservatively inflated by `ceil(radius/resolution)` cells using a square kernel. Diagonal movement cannot cut blocked corners.
 
-The bundled maps are synthetic examples, not measured LiDAR. Use independent floor grids, not a perspective rendering of several floors. Connections are bidirectional with direction-dependent estimated waiting times. Elevator height is excluded from D; D measures walking distance on the selected minimum-time portal path. Both D and T can therefore be asymmetric.
+The blank starter and populated demo are synthetic; bundled reference scans retain their source provenance. Use independent floor grids, not a perspective rendering of several floors. Connections are bidirectional with direction-dependent estimated waiting times. Elevator height is excluded from D; D measures walking distance on the selected minimum-time portal path. Both D and T can therefore be asymmetric.
 
 This is a single-robot, static-order simulator, without live SLAM, elevator queue/capacity simulation or multi-robot collision avoidance. Patience is a soft objective. Risk is a consequence coefficient, not a calibrated probability. GA is heuristic; improvement is relative to the feasible input-order baseline, not a guarantee of global optimality. Sower worlds share one background thread. The candidate budget is `population × (generations + 1) × effective_worlds ≤ 300,000`.
 
@@ -77,14 +89,16 @@ pip install playwright
 python -m playwright install chromium
 python tests/browser_editor.py
 python tests/browser_portals.py
+python tests/browser_map_import.py
+python tests/browser_workbench.py
 ```
 
-Both browser scripts start their own local HTTP server. On environments where browser navigation is restricted, `--offline-harness --chromium /usr/bin/chromium` uses an isolated DOM/Canvas with a bridge to the real local API. That mode does not validate native browser networking or CSP and does not modify browser policy. Test artifacts are written to the ignored `test-artifacts/` directory.
+The browser scripts start their own local HTTP server. On environments where browser navigation is restricted, `--offline-harness --chromium /usr/bin/chromium` uses an isolated DOM/Canvas with a bridge to the real local API. That mode does not validate native browser networking or CSP and does not modify browser policy. Test artifacts are written to the ignored `test-artifacts/` directory.
 
-After capturing the editor and portal screenshots, regenerate the README screenshot animation with:
+After capturing the workbench and map-import screenshots, regenerate the README screenshot animation with:
 
 ```bash
-python scripts/build_editor_gif.py
+python scripts/build_sheet_gif.py
 ```
 
 The shared English/Traditional Chinese catalogue is `web/locales.json`. Tests check matching keys/placeholders, English defaults, localized diagnostics, and unchanged model/results across language switches. For algorithm formulas and units, see the [mathematical model](math_model.md).
