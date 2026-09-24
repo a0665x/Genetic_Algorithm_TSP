@@ -7,7 +7,7 @@
   "tests/browser_editor.py": "985a05b0dd34c0c78b06b082f2e4c39a66af90bb6c59269a3bd4edfb907071c6",
   "tests/browser_map_import.py": "4cf16e92f649e7423a08e59852a41ea49b05ebb06efdadd4883911ccd19fc445",
   "tests/browser_portals.py": "1764ee2fdda06fdbb5e942012a6aeca3a077ab84e33a16a695d9aeacf913998a",
-  "tests/browser_workbench.py": "e494d5dd674588d5f1e8073b4b4a8479eccfc6c16b1cb5b4a6eaddb1ed731eba",
+  "tests/browser_workbench.py": "1653f9db8ebd87e3362932446494045603bcc0f64461bc1c9d19aafa22fcf5b2",
   "tests/test_workbench.py": "3e83de5c5507cb8de724c24b4c0a614a9b9447af0dfbdd0afdacf2fa07ee45b8",
   "web/editor.html": "3ef069b1af07735d4f455b38496f4a717b1032c51c375c749b7d443915fa8f45",
   "web/editor.js": "400412f59ca1f49a5e6a45608ce1acd5968026f89a4ec9093b6d9e1b93c115d8",

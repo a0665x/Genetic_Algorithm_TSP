@@ -64,4 +64,16 @@ else:
     path.write_text(json.dumps(catalogue,ensure_ascii=False,indent=2)+'\n')
     if any(digest(target(name))!=MANIFEST[name] for name in ['README.md','docs/guide.md','docs/semantic_maps.md']):
         runpy.run_path(str(ROOT/'.github/sheet-docs.py'))
+    # Native navigation exposes an asynchronous test race: an earlier preview
+    # can be ready while the new blank-sheet HTTP request is still pending.
+    # Wait for that action's completion too; assertions and production code stay intact.
+    path=target('tests/browser_workbench.py')
+    if digest(path)!=MANIFEST['tests/browser_workbench.py']:
+        if digest(path)!='e494d5dd674588d5f1e8073b4b4a8479eccfc6c16b1cb5b4a6eaddb1ed731eba':
+            raise ValueError('Unexpected browser test source')
+        old="def ready():wait('!!preview && !previewRunning && !previewQueued')"
+        new="def ready():wait('!!preview && !previewRunning && !previewQueued && !uploadInProgress && !mapApplying')"
+        text=path.read_text()
+        if text.count(old)!=1:raise ValueError('Expected exactly one readiness helper')
+        path.write_text(text.replace(old,new))
     verify()
