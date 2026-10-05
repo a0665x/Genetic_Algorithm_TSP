@@ -4,7 +4,9 @@
 
 ## Installation
 
-The README covers Conda. Alternatively, use Python 3.11+:
+For the containerized setup and lifecycle commands, use `./run.sh`; see the root README. The service is published only on `127.0.0.1` by default.
+
+To run without Docker, use Python 3.11+:
 
 ```bash
 python -m venv .venv

@@ -103,7 +103,7 @@ Weights are frozen for a run. The GA ranks permutations using the operational ob
 
 ## 5. Historical formulas are not the same objective
 
-The original `Weight_distence` branch of `project_demo(GA_and_APF_routing)/util/TSP_GA.py` uses user-supplied endpoint weights h, not weights that originally came from the new feature model:
+The original `Weight_distence` branch of `legacy/ga_apf_routing/util/TSP_GA.py` uses user-supplied endpoint weights h, not weights that originally came from the new feature model:
 
 $$
 C^{old}_{ij,k}=\frac{d_{ij}}{10k[1+\sigma((h_i+h_j)/5)]}.

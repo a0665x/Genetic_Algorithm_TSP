@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+env
+__pycache__
+*.py[cod]
+.pytest_cache
+.ipynb_checkpoints
+node_modules
+test-artifacts
+docs
+legacy
+notebook
+scripts
+tests
+*.gif
+*.jpg
