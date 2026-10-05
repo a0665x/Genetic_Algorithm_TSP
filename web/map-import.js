@@ -3,17 +3,18 @@
 let mapQueue=[], mapTarget=null, mapSession=null, mapCandidate=null, mapReview=null;
 let mapStandalone=false, mapScaleAssumed=true, mapApplying=false, mapApplySerial=0;
 let mapRevision=0, mapTimer=null, mapReading=false, mapRules=[], mapPicking=false;
+let mapHistogramGray=205, mapHistogramStart=null;
 const rasterCache=new Map();
 const mapDialog=document.createElement('dialog');mapDialog.id='mapImportDialog';
 mapDialog.innerHTML=`<div class="dialog-title"><h2 data-i18n="semantic.title"></h2><select id="mapLanguage" data-i18n-aria-label="language.label"><option value="en">English</option><option value="zh-Hant">繁體中文</option></select><button id="closeMapImport" data-i18n-aria-label="common.close">✕</button></div>
 <p id="mapFileName" class="hint"></p>
 <details id="mapOptions"><summary data-i18n="sheet.import_options"></summary><div class="map-import-fields"><label class="field"><span data-i18n="semantic.floor_id"></span><input id="mapFloorId" maxlength="40" required/></label><label class="field"><span data-i18n="floor.name"></span><input id="mapFloorName" maxlength="40" required/></label><label class="field"><span data-i18n="semantic.source_scale"></span><input id="mapScale" type="number" min=".001" max="2" step=".001" required value="0.1"/></label><label class="field"><span data-i18n="semantic.profile"></span><select id="mapProfile"><option value="auto" data-i18n="semantic.auto"></option><option value="graph" data-i18n="semantic.graph"></option><option value="lidar" data-i18n="semantic.lidar"></option><option value="floorplan" data-i18n="semantic.floorplan"></option><option value="custom" data-i18n="semantic.custom"></option></select></label></div></details>
-<div class="map-review-grid"><section><h3 data-i18n="semantic.original"></h3><canvas id="sourceCanvas" data-i18n-aria-label="semantic.source_pick"></canvas></section><section><div class="map-preview-heading"><h3 data-i18n="semantic.preview"></h3><select id="reviewLayer" data-i18n-aria-label="semantic.layer"><option value="class_preview" data-i18n="semantic.classes"></option><option value="map_data" data-i18n="semantic.planning"></option><option value="clearance_preview" data-i18n="semantic.clearance"></option></select></div><canvas id="reviewCanvas" data-i18n-aria-label="semantic.preview"></canvas></section></div>
+<div class="map-review-grid"><section><h3 data-i18n="semantic.original"></h3><div class="map-canvas-stack"><canvas id="sourceCanvas" data-i18n-aria-label="semantic.source_pick"></canvas><canvas id="sourceHighlight" aria-hidden="true"></canvas></div></section><section><div class="map-preview-heading"><h3 data-i18n="semantic.preview"></h3><select id="reviewLayer" data-i18n-aria-label="semantic.layer"><option value="class_preview" data-i18n="semantic.classes"></option><option value="map_data" data-i18n="semantic.planning"></option><option value="clearance_preview" data-i18n="semantic.clearance"></option></select></div><canvas id="reviewCanvas" data-i18n-aria-label="semantic.preview"></canvas></section></div>
 <p id="mapSimpleSummary" class="map-simple-summary" role="status"></p>
 <div class="semantic-legend"><span class="map-class wall" data-i18n="semantic.wall"></span><span class="map-class unknown" data-i18n="semantic.unknown"></span><span class="map-class cost" data-i18n="semantic.cost"></span><span class="map-class free" data-i18n="semantic.free"></span></div>
 <p id="mapReviewState" class="map-review-state" role="status"></p><details id="mapDiagnostics"><summary data-i18n="sheet.map_notes"></summary><p id="mapStats" class="hint"></p><div id="mapWarnings" class="map-warnings"></div></details>
 <details id="mapAdvanced"><summary data-i18n="semantic.advanced"></summary><div class="map-import-fields"><label class="field"><span data-i18n="semantic.wall_threshold"></span><input id="mapWall" type="number" min="0" max="253" step="1" value="100"/></label><label class="field"><span data-i18n="semantic.free_threshold"></span><input id="mapFree" type="number" min="1" max="255" step="1" value="240"/></label><label class="field"><span data-i18n="semantic.grid_size"></span><select id="mapMaxSide"><option>512</option><option>384</option><option>256</option></select></label><label class="check"><input id="mapInvert" type="checkbox"/><span data-i18n="semantic.invert"></span></label></div>
-<p class="hint" data-i18n="semantic.rule_help"></p><div class="map-color-controls"><input type="color" id="mapColor" value="#cdcdcd" data-i18n-aria-label="semantic.color"/><select id="mapRuleKind" data-i18n-aria-label="semantic.class"><option value="wall" data-i18n="semantic.wall"></option><option value="unknown" selected data-i18n="semantic.unknown"></option><option value="cost" data-i18n="semantic.cost"></option><option value="free" data-i18n="semantic.free"></option></select><label><span data-i18n="semantic.tolerance"></span><input id="mapTolerance" type="number" min="0" max="64" step="1" value="8"/></label><button id="pickMapColor" data-i18n="semantic.pick"></button><button id="addMapRule" data-i18n="semantic.add_rule"></button></div><div id="mapRules"></div><button id="refreshMapReview" data-i18n="semantic.refresh"></button></details>
+<p class="hint" data-i18n="semantic.rule_help"></p><section class="color-histogram-panel"><div class="map-preview-heading"><h3 data-i18n="semantic.histogram_title"></h3><span data-i18n="semantic.histogram_axes" class="hint"></span></div><canvas id="colorHistogram" width="768" height="180" tabindex="0" role="img" data-i18n-aria-label="semantic.histogram_aria"></canvas><p id="histogramSelection" class="hint" role="status"></p></section><div class="map-color-controls"><input type="color" id="mapColor" value="#cdcdcd" data-i18n-aria-label="semantic.color"/><select id="mapRuleKind" data-i18n-aria-label="semantic.class"><option value="wall" data-i18n="semantic.wall"></option><option value="unknown" selected data-i18n="semantic.unknown"></option><option value="cost" data-i18n="semantic.cost"></option><option value="free" data-i18n="semantic.free"></option></select><label><span data-i18n="semantic.tolerance"></span><input id="mapTolerance" type="number" min="0" max="64" step="1" value="8"/></label><button id="pickMapColor" data-i18n="semantic.pick"></button><button id="addMapRule" data-i18n="semantic.add_rule"></button></div><div id="mapRules"></div><button id="refreshMapReview" data-i18n="semantic.refresh"></button></details>
 <div class="map-import-footer"><label class="check" hidden><input type="checkbox" id="mapReviewed"/><span data-i18n="semantic.confirm"></span></label><button class="primary" id="applyMapImport" disabled data-i18n="semantic.use_map"></button></div>`;
 document.body.append(mapDialog);
 const importMapButton=document.createElement('button');importMapButton.id='importMapBtn';importMapButton.dataset.i18n='semantic.import';
@@ -36,6 +37,7 @@ $('mapScale').onchange=()=>{mapScaleAssumed=false;invalidateMap();};
 $('reviewLayer').value='clearance_preview';
 $('reviewLayer').onchange=()=>paintReview();
 $('refreshMapReview').onclick=invalidateMap;
+$('mapAdvanced').ontoggle=()=>{if($('mapAdvanced').open)drawColorHistogram();};
 
 async function beginMapImport(files,target=null,standalone=false){
   if(uploadInProgress||busy)return;
@@ -77,9 +79,10 @@ async function computeMapReview(){
 function drawReviewImage(id,url){
   const canvas=$(id),version=mapRevision;const image=new Image();image.onload=()=>{if(version!==mapRevision)return;
     canvas.width=image.width;canvas.height=image.height;const g=canvas.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,canvas.width,canvas.height);g.drawImage(image,0,0);
+    if(id==='sourceCanvas')updateColorHighlight();
   };image.src=url;
 }
-function paintReview(){if(!mapReview)return;drawReviewImage('sourceCanvas',mapReview.source_preview);drawReviewImage('reviewCanvas',mapReview[$('reviewLayer').value]);}
+function paintReview(){if(!mapReview)return;drawReviewImage('sourceCanvas',mapReview.source_preview);drawReviewImage('reviewCanvas',mapReview[$('reviewLayer').value]);drawColorHistogram();}
 function renderMapReview(){
   $('mapFileName').textContent=mapCandidate?`${mapCandidate.name}${mapQueue.length?' · '+t('semantic.remaining',{count:mapQueue.length}):''}`:'';
   if(!mapReview)return;const r=mapReview,s=r.stats;
@@ -87,16 +90,56 @@ function renderMapReview(){
   $('mapReviewState').textContent=s.walkable===0?t('sheet.map_blocked'):t('sheet.map_ready');$('mapReviewState').classList.toggle('error',s.walkable===0);
   $('mapStats').textContent=t('semantic.stats',{source:r.source_size.join(' × '),grid:`${r.width} × ${r.height}`,scale:fmt(r.resolution,3),free:fmt(s.walkable/s.cells*100),components:s.components});
   $('mapWarnings').replaceChildren();for(const code of r.warnings){const p=document.createElement('p');p.textContent=t('semantic.warn_'+code,{factor:r.factor});$('mapWarnings').append(p);}
+  renderMapRules();drawColorHistogram();updateColorHighlight();
 }
 function renderMapRules(){
   $('mapRules').replaceChildren();for(const [i,r] of mapRules.entries()){
-    const row=document.createElement('div');row.className='map-rule';const label=document.createElement('span');label.textContent=`${r.color} ±${r.tolerance} → ${t('semantic.'+r.kind)}`;
+    const hit=mapReview?.analysis?.rule_hits?.find(h=>h.index===i);
+    const row=document.createElement('div');row.className='map-rule';const label=document.createElement('span');label.textContent=`${r.color} ±${r.tolerance} → ${t('semantic.'+r.kind)}`+(hit?` · ${t('semantic.rule_hits',{matched:hit.matched,applied:hit.applied})}`:'');
     const b=document.createElement('button');b.textContent=t('common.remove');b.onclick=()=>{mapRules.splice(i,1);renderMapRules();invalidateMap();};row.append(label,b);$('mapRules').append(row);
   }
 }
 $('addMapRule').onclick=()=>{if(mapRules.length>=12){mapError('rule_limit');return;}if(!$('mapTolerance').reportValidity())return;
   mapRules.push({color:$('mapColor').value,kind:$('mapRuleKind').value,tolerance:Number($('mapTolerance').value)});renderMapRules();invalidateMap();};
 $('pickMapColor').onclick=()=>{mapPicking=true;$('mapWarnings').textContent=t('semantic.pick_hint');};
+$('mapColor').oninput=updateColorSelection;
+$('mapTolerance').oninput=()=>{drawColorHistogram();updateColorHighlight();};
+
+function colorChannels(hex){return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));}
+function nearestHistogramBin(hex){
+  if(!mapReview?.analysis?.histogram)return mapHistogramGray;
+  const rgb=colorChannels(hex);let best=mapHistogramGray,score=Infinity;
+  for(const b of mapReview.analysis.histogram){if(!b.count)continue;const c=colorChannels(b.color),d=c.reduce((sum,v,i)=>sum+(v-rgb[i])**2,0);if(d<score){score=d;best=b.gray;}}
+  return best;
+}
+function updateColorSelection(){mapHistogramGray=nearestHistogramBin($('mapColor').value);drawColorHistogram();updateColorHighlight();}
+function selectHistogramRange(a,b){
+  if(!mapReview)return;const low=Math.min(a,b),high=Math.max(a,b),center=Math.round((low+high)/2);
+  const occupied=mapReview.analysis.histogram.filter(v=>v.count).sort((x,y)=>Math.abs(x.gray-center)-Math.abs(y.gray-center))[0];
+  if(!occupied)return;mapHistogramGray=occupied.gray;$('mapColor').value=occupied.color;$('mapTolerance').value=Math.min(64,Math.ceil((high-low)/2));
+  drawColorHistogram();updateColorHighlight();
+}
+function histogramGrayAt(e){const r=$('colorHistogram').getBoundingClientRect();return Math.max(0,Math.min(255,Math.floor((e.clientX-r.left)/r.width*256)));}
+$('colorHistogram').onpointerdown=e=>{mapHistogramStart=histogramGrayAt(e);e.currentTarget.setPointerCapture(e.pointerId);selectHistogramRange(mapHistogramStart,mapHistogramStart);};
+$('colorHistogram').onpointermove=e=>{if(mapHistogramStart!==null)selectHistogramRange(mapHistogramStart,histogramGrayAt(e));};
+$('colorHistogram').onpointerup=e=>{if(mapHistogramStart!==null)selectHistogramRange(mapHistogramStart,histogramGrayAt(e));mapHistogramStart=null;};
+$('colorHistogram').onkeydown=e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const step=e.key==='ArrowLeft'?-1:1;if(e.shiftKey)$('mapTolerance').value=Math.max(0,Math.min(64,Number($('mapTolerance').value)+step));else mapHistogramGray=Math.max(0,Math.min(255,mapHistogramGray+step));const occupied=mapReview?.analysis?.histogram.filter(v=>v.count).sort((a,b)=>Math.abs(a.gray-mapHistogramGray)-Math.abs(b.gray-mapHistogramGray))[0];if(occupied){mapHistogramGray=occupied.gray;$('mapColor').value=occupied.color;}drawColorHistogram();updateColorHighlight();};
+function drawColorHistogram(){
+  const canvas=$('colorHistogram');if(!mapReview||!canvas)return;const g=canvas.getContext('2d'),hist=mapReview.analysis.histogram,max=Math.max(1,...hist.map(v=>v.count));
+  g.clearRect(0,0,canvas.width,canvas.height);g.fillStyle='#f7fafb';g.fillRect(0,0,canvas.width,canvas.height);
+  const top=12,bottom=28,h=canvas.height-top-bottom,w=canvas.width/256;
+  for(const b of hist){if(!b.count)continue;const bh=Math.max(2,Math.log1p(b.count)/Math.log1p(max)*h);g.fillStyle=b.color;g.fillRect(b.gray*w,top+h-bh,Math.ceil(w),bh);}
+  const tolerance=Number($('mapTolerance').value)||0,lo=Math.max(0,mapHistogramGray-tolerance),hi=Math.min(255,mapHistogramGray+tolerance);
+  g.fillStyle='#087f7526';g.fillRect(lo*w,top,(hi-lo+1)*w,h);g.strokeStyle='#087f75';g.lineWidth=2;g.strokeRect(lo*w+1,top+1,Math.max(2,(hi-lo+1)*w-2),h-2);
+  g.fillStyle='#4f6573';g.font='12px sans-serif';for(const x of [0,64,128,192,255])g.fillText(String(x),Math.min(canvas.width-22,x*w),canvas.height-8);
+  const count=hist.slice(lo,hi+1).reduce((sum,v)=>sum+v.count,0);$('histogramSelection').textContent=t('semantic.histogram_selection',{low:lo,high:hi,color:$('mapColor').value,count});
+}
+function updateColorHighlight(){
+  const source=$('sourceCanvas'),overlay=$('sourceHighlight');if(!source.width||!source.height)return;
+  overlay.width=source.width;overlay.height=source.height;const src=source.getContext('2d').getImageData(0,0,source.width,source.height),ctx=overlay.getContext('2d'),out=ctx.createImageData(source.width,source.height),rgb=colorChannels($('mapColor').value),tol=Number($('mapTolerance').value)||0;let count=0;
+  for(let i=0;i<src.data.length;i+=4){if(src.data[i+3]&&Math.max(Math.abs(src.data[i]-rgb[0]),Math.abs(src.data[i+1]-rgb[1]),Math.abs(src.data[i+2]-rgb[2]))<=tol){out.data.set([255,39,110,210],i);count++;}}
+  ctx.putImageData(out,0,0);overlay.classList.toggle('active',count>0);
+}
 $('sourceCanvas').onclick=async e=>{
   if(!mapPicking||!mapReview||!mapCandidate)return;
   const box=e.currentTarget.getBoundingClientRect(),version=mapRevision;
@@ -104,7 +147,7 @@ $('sourceCanvas').onclick=async e=>{
   const rect={left:box.left+(box.width-width)/2,top:box.top+(box.height-height)/2,width,height};
   if(e.clientX<rect.left||e.clientX>rect.left+width||e.clientY<rect.top||e.clientY>rect.top+height)return;
   const sample={x:Math.min(mapReview.source_size[0]-1,Math.max(0,Math.floor((e.clientX-rect.left)/rect.width*mapReview.source_size[0]))),y:Math.min(mapReview.source_size[1]-1,Math.max(0,Math.floor((e.clientY-rect.top)/rect.height*mapReview.source_size[1])))};
-  try{const v=await api('/api/editor/map-review',{map_data:mapCandidate.map_data,sample});if(version!==mapRevision)return;$('mapColor').value=v.color;mapPicking=false;renderMapReview();}
+  try{const v=await api('/api/editor/map-review',{map_data:mapCandidate.map_data,sample});if(version!==mapRevision)return;$('mapColor').value=v.color;mapPicking=false;updateColorSelection();renderMapReview();}
   catch(e){$('mapWarnings').textContent=e.message;}
 };
 $('applyMapImport').onclick=async()=>{

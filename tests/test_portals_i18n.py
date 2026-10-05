@@ -5,8 +5,10 @@ from pathlib import Path
 import re
 import unittest
 from unittest.mock import patch
+from PIL import Image, ImageDraw
 
-from scheduler.editor import editor_demo, preview_editor, preflight_editor, validate_editor, EditorJobs
+from scheduler.editor import editor_demo, starter_scene, preview_editor, preflight_editor, validate_editor, EditorJobs
+from scheduler.building import png_url
 from scheduler.portals import SceneIssues
 from scheduler.messages import localize_payload, exception_payload
 from test_http import HTTPTests
@@ -76,6 +78,33 @@ class PortalTests(unittest.TestCase):
         for p in self.scene['portals']:p['enabled']=False
         check=self.assert_blocked_before_search(self.scene)
         self.assertTrue(any(i['code']=='route.disconnected' for i in check['issues']))
+    def test_disconnected_node_gets_non_mutating_move_proposal(self):
+        scene=starter_scene();image=Image.new('L',(40,24),255)
+        draw=ImageDraw.Draw(image);draw.rectangle((0,0,39,23),outline=0,width=1);draw.line((20,0,20,23),fill=0,width=1)
+        scene['floors'][0]['map_data']=png_url(image)
+        scene['settings']['radius']=0
+        scene['nodes']=[{'id':'N1','floor':'sheet-1','x':8,'y':12},
+                        {'id':'N7','floor':'sheet-1','x':31,'y':12}]
+        before=copy.deepcopy(scene);check=preflight_editor(scene)
+        proposal=next(s for s in check['suggestions'] if s['kind']=='node.move' and s['node']=='N7')
+        self.assertEqual(scene,before)
+        self.assertEqual(proposal['before'],scene['nodes'][1])
+        self.assertEqual(proposal['after']['floor'],'sheet-1')
+        self.assertLess(proposal['after']['x'],20)
+    def test_incomplete_enabled_portal_gets_disable_proposal(self):
+        self.scene['portals'][0]['b']=None
+        check=preflight_editor(self.scene)
+        proposal=next(s for s in check['suggestions'] if s['kind']=='portal.disable')
+        self.assertEqual(proposal['portal'],self.scene['portals'][0]['id'])
+        self.assertEqual(proposal['after'],{'enabled':False})
+    def test_blocked_node_gets_nearest_valid_move_proposal(self):
+        scene=starter_scene();scene['settings']['radius']=0
+        scene['nodes']=[{'id':'N1','floor':'sheet-1','x':20,'y':20},
+                        {'id':'N2','floor':'sheet-1','x':0,'y':0}]
+        check=preflight_editor(scene)
+        proposal=next(s for s in check['suggestions'] if s['kind']=='node.move' and s['node']=='N2')
+        self.assertEqual(proposal['reason'],'node.blocked')
+        self.assertNotEqual((proposal['after']['x'],proposal['after']['y']),(0,0))
     def test_draft_with_no_route_nodes_remains_editable(self):
         self.scene['nodes']=[];self.scene['portals'][0]['b']=None
         out=preview_editor(self.scene)

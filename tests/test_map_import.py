@@ -45,6 +45,21 @@ class MapImportTests(unittest.TestCase):
         self.assertGreater(request(im,options={'profile':'custom','rules':rules})['stats']['walkable'],0)
         rules.append({'color':'#1478dc','kind':'wall','tolerance':2})
         for rr in (rules,rules[::-1]):self.assertEqual(request(im,options={'profile':'custom','rules':rr})['stats']['walkable'],0)
+    def test_histogram_exposes_all_bins_and_rule_override_counts(self):
+        im=Image.new('RGB',(12,12),(19,119,219))
+        rules=[{'color':'#1478dc','kind':'free','tolerance':1},
+               {'color':'#1478dc','kind':'wall','tolerance':2}]
+        r=request(im,options={'profile':'floorplan','rules':rules},settings={'radius':0})
+        hist=r['analysis']['histogram']
+        self.assertEqual(len(hist),256)
+        occupied=[b for b in hist if b['count']]
+        self.assertEqual(len(occupied),1)
+        self.assertEqual(occupied[0]['count'],144)
+        self.assertEqual(occupied[0]['color'],'#1377db')
+        self.assertEqual(r['analysis']['rule_hits'],[
+            {'index':0,'matched':144,'applied':0},
+            {'index':1,'matched':144,'applied':144},
+        ])
     def test_unmatched_custom_color_stays_unknown(self):
         self.assertEqual(request(Image.new('RGB',(12,12),'white'),options={'profile':'custom'})['stats']['walkable'],0)
     def test_invert_black_floor(self):

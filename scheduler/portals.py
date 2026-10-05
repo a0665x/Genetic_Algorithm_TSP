@@ -6,7 +6,8 @@ Component labelling checks reachability before A* or GA is started.
 from __future__ import annotations
 from collections import defaultdict, deque
 
-from scipy.ndimage import label
+import numpy as np
+from scipy.ndimage import label, distance_transform_edt
 from .api import number
 
 
@@ -68,8 +69,8 @@ def normalise_portals(raw):
 
 
 def inspect_topology(grids, portals, nodes):
-    """Return serializable diagnostics; never manufacture or repair endpoints."""
-    issues, states = [], []
+    """Return diagnostics and explicit proposals without mutating user input."""
+    issues, states, suggestions = [], [], []
     complete = []
     for p in portals:
         local = []
@@ -92,6 +93,10 @@ def inspect_topology(grids, portals, nodes):
                  'invalid' if local else 'complete')
         states.append(dict(id=p['id'], state=state, issues=local,
                            labels={s: endpoint_label(p, s) for s in ('a', 'b')}))
+        if p['enabled'] and local:
+            suggestions.append(dict(id=f"portal.disable:{p['id']}", kind='portal.disable',
+                                    portal=p['id'], reason=local[0]['code'],
+                                    before={'enabled': True}, after={'enabled': False}))
         if p['enabled'] and not local:
             complete.append(p)
 
@@ -115,6 +120,21 @@ def inspect_topology(grids, portals, nodes):
         node_components.append(c)
         if c is None:
             issues.append(issue('node.blocked', node=n['id'], floor=n.get('floor', '—')))
+    def propose_move(n, mask, reason):
+        if mask is None or not mask.any():
+            return
+        distances, indices = distance_transform_edt(~mask, return_indices=True)
+        g = grids[n['floor']]
+        x = min(max(int(n['x']), 0), g.width - 1)
+        y = min(max(int(n['y']), 0), g.height - 1)
+        ny, nx = int(indices[0, y, x]), int(indices[1, y, x])
+        before = dict(id=n['id'], floor=n['floor'], x=n['x'], y=n['y'])
+        after = dict(id=n['id'], floor=n['floor'], x=nx, y=ny)
+        suggestions.append(dict(id=f"node.move:{n['id']}", kind='node.move',
+                                node=n['id'], reason=reason,
+                                distance_cells=round(float(distances[y, x]), 2),
+                                before=before, after=after))
+    seen = set()
     if nodes and node_components[0] is not None:
         seen = {node_components[0]}
         queue = deque(seen)
@@ -129,4 +149,14 @@ def inspect_topology(grids, portals, nodes):
                 if c is not None and c not in seen:
                     issues.append(issue('route.disconnected', node=n['id'], floor=n['floor'],
                                         start=nodes[0]['id']))
-    return dict(ok=not any(i['severity'] == 'error' for i in issues), issues=issues, portals=states)
+                    reachable = {value for floor, value in seen if floor == n['floor']}
+                    mask = np.isin(components[n['floor']], list(reachable)) if reachable else None
+                    propose_move(n, mask, 'route.disconnected')
+    for n, c in zip(nodes, node_components):
+        if c is not None or n.get('floor') not in grids:
+            continue
+        reachable = {value for floor, value in seen if floor == n['floor']}
+        mask = np.isin(components[n['floor']], list(reachable)) if reachable else ~grids[n['floor']].blocked
+        propose_move(n, mask, 'node.blocked')
+    return dict(ok=not any(i['severity'] == 'error' for i in issues), issues=issues,
+                portals=states, suggestions=suggestions)

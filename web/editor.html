@@ -252,6 +252,17 @@
      <button data-i18n="portal.manage" id="fixPortalsBtn">
       Manage elevators
      </button>
+     <button hidden="" id="reviewFixesBtn">
+      Review suggested fixes
+     </button>
+     <section hidden="" id="repairSuggestions">
+      <strong data-i18n="validation.proposals">Proposed changes — nothing is changed until you apply them</strong>
+      <div id="repairSuggestionList"></div>
+      <div class="repair-actions">
+       <button class="primary" data-i18n="validation.apply_fixes" id="applySuggestedFixes">Apply selected changes</button>
+       <button data-i18n="validation.cancel_fixes" id="cancelSuggestedFixes">Cancel</button>
+      </div>
+     </section>
     </div>
     <canvas aria-label="Route map. Drag pins or box-select. Right-click to add or delete. Delete removes selected nodes." data-i18n-aria-label="aria.map" id="mapCanvas" tabindex="0">
     </canvas>

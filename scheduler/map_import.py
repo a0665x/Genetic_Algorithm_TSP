@@ -113,12 +113,14 @@ def classify(image, options):
         classes[(gray >= options['free_threshold']) & ~colored] = FREE
         if profile == 'floorplan':
             classes[mid & ~colored] = COST
+    rule_masks = []
     if options['rules']:
         chosen = np.full(gray.shape, 4, dtype=np.uint8)
         rgb16 = rgb.astype(np.int16)
         for rule in options['rules']:
             color = np.array([int(rule['color'][i:i+2], 16) for i in (1, 3, 5)], dtype=np.int16)
-            matches = np.max(np.abs(rgb16 - color), axis=2) <= rule['tolerance']
+            matches = (np.max(np.abs(rgb16 - color), axis=2) <= rule['tolerance']) & opaque
+            rule_masks.append(matches)
             chosen[matches] = np.minimum(chosen[matches], CLASS_NAMES.index(rule['kind']))
         changed = chosen < 4
         classes[changed] = chosen[changed]
@@ -127,10 +129,23 @@ def classify(image, options):
     classes[~opaque] = UNKNOWN
     counts = {name: int((classes == k).sum()) for k, name in enumerate(CLASS_NAMES)}
     hist = np.bincount(gray[opaque].ravel(), minlength=256)
-    dominant = np.argsort(hist)[-5:][::-1]
+    channel_sums = [np.bincount(gray[opaque].ravel(), weights=rgb[:, :, channel][opaque].ravel(),
+                                minlength=256) for channel in range(3)]
+    histogram = []
+    for k in range(256):
+        if hist[k]:
+            color = '#' + ''.join(f'{int(round(channel_sums[c][k] / hist[k])):02x}' for c in range(3))
+        else:
+            color = f'#{k:02x}{k:02x}{k:02x}'
+        histogram.append(dict(gray=k, count=int(hist[k]), color=color))
+    rule_hits = []
+    for index, (rule, matches) in enumerate(zip(options['rules'], rule_masks)):
+        kind = CLASS_NAMES.index(rule['kind'])
+        rule_hits.append(dict(index=index, matched=int(matches.sum()),
+                              applied=int((matches & (classes == kind)).sum())))
     return classes, dict(profile=profile, mid_fraction=mid_fraction,
                         colored_fraction=float(colored.mean()), counts=counts,
-                        histogram=[dict(gray=int(k), count=int(hist[k])) for k in dominant if hist[k]])
+                        histogram=histogram, rule_hits=rule_hits)
 
 
 def reduce_classes(classes, factor):

@@ -27,7 +27,7 @@ function renderPortalSummary(){
   }
 }
 function renderValidation(){
-  const issues=preview?.preflight?.issues||[],panel=$('preflightPanel');
+  const issues=preview?.preflight?.issues||[],suggestions=preview?.preflight?.suggestions||[],panel=$('preflightPanel');
   panel.hidden=!issues.length;
   $('preflightIssues').replaceChildren();
   for(const issue of issues){
@@ -41,7 +41,29 @@ function renderValidation(){
   }
   panel.querySelector('strong').textContent=issues.some(i=>i.severity==='error')?t('validation.title'):t('validation.warnings',{count:issues.length});
   $('fixPortalsBtn').disabled=busy;
+  $('reviewFixesBtn').hidden=!suggestions.length;$('reviewFixesBtn').disabled=busy;
+  $('reviewFixesBtn').textContent=t('validation.review_fixes',{count:suggestions.length});
+  if(!suggestions.length)$('repairSuggestions').hidden=true;
   renderPortalSummary();availability();
+}
+function renderRepairSuggestions(){
+  const suggestions=preview?.preflight?.suggestions||[],list=$('repairSuggestionList');list.replaceChildren();
+  for(const suggestion of suggestions){
+    const label=document.createElement('label');label.className='repair-suggestion';
+    const input=document.createElement('input');input.type='checkbox';input.checked=true;input.value=suggestion.id;
+    const text=suggestion.kind==='node.move'?t('validation.node_move',{node:suggestion.node,floor:suggestion.after.floor,fromX:suggestion.before.x,fromY:suggestion.before.y,toX:suggestion.after.x,toY:suggestion.after.y,distance:suggestion.distance_cells}):t('validation.portal_disable',{portal:suggestion.portal});
+    label.append(input,document.createTextNode(text));list.append(label);
+  }
+  $('repairSuggestions').hidden=false;
+}
+function applyRepairSuggestions(){
+  const suggestions=preview?.preflight?.suggestions||[],selected=new Set([...$('repairSuggestionList').querySelectorAll('input:checked')].map(v=>v.value));
+  const changes=suggestions.filter(v=>selected.has(v.id));if(!changes.length)return;
+  $('repairSuggestions').hidden=true;
+  commit(()=>{for(const change of changes){
+    if(change.kind==='node.move'){const node=scene.nodes.find(n=>n.id===change.node);if(node)Object.assign(node,{floor:change.after.floor,x:change.after.x,y:change.after.y});}
+    if(change.kind==='portal.disable'){const portal=scene.portals.find(p=>p.id===change.portal);if(portal)portal.enabled=false;}
+  }},t('validation.fixes_applied',{count:changes.length}));
 }
 function updatePlacement(){
   $('placementBar').hidden=!portalPick;
@@ -263,6 +285,7 @@ document.addEventListener('languagechange',()=>{
     $('previewElevators').textContent=preview?.legs.flatMap(l=>l.segments.filter(s=>s.kind==='elevator').map(s=>`${s.id} ${s.start.floor} → ${s.end.floor}`)).join(' / ')||t('route.same_floor');}
 });
 $('managePortalsBtn').onclick=()=>openPortalSettings();$('fixPortalsBtn').onclick=()=>openPortalSettings();
+$('reviewFixesBtn').onclick=renderRepairSuggestions;$('applySuggestedFixes').onclick=applyRepairSuggestions;$('cancelSuggestedFixes').onclick=()=>{$('repairSuggestions').hidden=true;};
 $('settingsBtn').onclick=()=>openPortalSettings();
 $('closeSettings').onclick=()=>{$('settingsDialog').close();draftVersion++;clearTimeout(draftCheckTimer);};
 $('settingsDialog').addEventListener('cancel',()=>{draftVersion++;clearTimeout(draftCheckTimer);});

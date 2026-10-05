@@ -10,14 +10,9 @@ Drop in a map, drag your stops, and plan a delivery route. Add more sheets and c
 
 *GA evolution, Sower elite exchange, operational metrics and inspectable result matrices.*
 
-<details>
-<summary>Watch the complete UI walkthrough</summary>
+![Dispatch Lab evolution observatory, retained elites and route matrices](docs/assets/ui_demo_img3.png)
 
-![Dispatch Lab: map sheets, draggable elevator channels and GA evolution](docs/assets/dispatch-demo.gif)
-
-</details>
-
-*Actual UI walkthrough: one sheet → connect maps → rearrange layers → explore evolution.*
+*Evolution replay, retained elites and inspectable priority, distance and time matrices.*
 
 ## Features
 
